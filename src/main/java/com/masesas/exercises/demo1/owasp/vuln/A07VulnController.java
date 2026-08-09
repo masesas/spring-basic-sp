@@ -37,6 +37,6 @@ public class A07VulnController {
 
         AppUser user = found.get();
         String token = jwtService.issueWithoutExpiry(user, Instant.now(clock));
-        return ResponseEntity.ok(new LoginResponse(token, user.role()));
+        return ResponseEntity.ok(new LoginResponse(token, String.join(",", user.roles())));
     }
 }

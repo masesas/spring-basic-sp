@@ -37,6 +37,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/payroll")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN','MANAGER','HR')")
 public class PayrollController {
 
     private final PayrollService payrollService;
@@ -44,7 +45,6 @@ public class PayrollController {
     /** POST /api/payroll — buat slip gaji baru. */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasRole('HR')")
     public PayrollResponse create(@Valid @RequestBody PayrollRequest request) {
         return payrollService.create(request);
     }
@@ -87,7 +87,6 @@ public class PayrollController {
 
     /** PUT /api/payroll/{idKaryawan}/{periode} — revisi nominal slip gaji. */
     @PutMapping("/{idKaryawan}/{periode}")
-    @PreAuthorize("hasRole('HR')")
     public PayrollResponse update(
             @PathVariable Integer idKaryawan,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periode,
@@ -97,7 +96,6 @@ public class PayrollController {
 
     /** POST /api/payroll/{idKaryawan}/{periode}/approve — kunci slip gaji. */
     @PostMapping("/{idKaryawan}/{periode}/approve")
-    @PreAuthorize("hasRole('HR')")
     public PayrollResponse approve(
             @PathVariable Integer idKaryawan,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periode) {
@@ -107,7 +105,7 @@ public class PayrollController {
     /** DELETE /api/payroll/{idKaryawan}/{periode} — hapus slip gaji (hard delete). */
     @DeleteMapping("/{idKaryawan}/{periode}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasRole('HR')")
+    @PreAuthorize("hasAnyRole('ADMIN','HR')")
     public void delete(
             @PathVariable Integer idKaryawan,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periode) {

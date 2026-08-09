@@ -1,11 +1,14 @@
-package com.masesas.exercises.demo1.owasp.safe;
+package com.masesas.exercises.demo1.controller;
 
+import com.masesas.exercises.demo1.dto.AuthResponse;
+import com.masesas.exercises.demo1.dto.CustomerRegisterRequest;
+import com.masesas.exercises.demo1.dto.CustomerResponse;
 import com.masesas.exercises.demo1.dto.LoginRequest;
-import com.masesas.exercises.demo1.dto.LoginResponse;
 import com.masesas.exercises.demo1.security.AppUser;
 import com.masesas.exercises.demo1.security.AppUserDetailsService;
 import com.masesas.exercises.demo1.security.JwtService;
 import com.masesas.exercises.demo1.security.LoginAttemptService;
+import com.masesas.exercises.demo1.service.CustomerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -21,35 +24,45 @@ import java.time.Instant;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/safe")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
-public class A07SafeController {
+public class AuthController {
 
     private final AppUserDetailsService userDetailsService;
+    private final CustomerService customerService;
     private final PasswordEncoder passwordEncoder;
     private final LoginAttemptService loginAttempts;
     private final JwtService jwtService;
-    private final AuditLogger auditLogger;
     private final Clock clock;
 
-    @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+    @PostMapping("/karyawan/login")
+    public ResponseEntity<AuthResponse> loginKaryawan(@Valid @RequestBody LoginRequest request) {
+        return login(userDetailsService.findKaryawan(request.username()), request);
+    }
+
+    @PostMapping("/customer/register")
+    public ResponseEntity<CustomerResponse> register(@Valid @RequestBody CustomerRegisterRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(customerService.register(request));
+    }
+
+    @PostMapping("/customer/login")
+    public ResponseEntity<AuthResponse> loginCustomer(@Valid @RequestBody LoginRequest request) {
+        return login(userDetailsService.findCustomer(request.username()), request);
+    }
+
+    private ResponseEntity<AuthResponse> login(Optional<AppUser> found, LoginRequest request) {
         if (loginAttempts.isLocked(request.username())) {
-            auditLogger.catat("auth.login", request.username(), "DITOLAK:TERKUNCI");
             return ResponseEntity.status(HttpStatus.LOCKED).build();
         }
 
-        Optional<AppUser> found = userDetailsService.find(request.username());
         if (found.isEmpty() || !passwordEncoder.matches(request.password(), found.get().getPassword())) {
             loginAttempts.recordFailure(request.username());
-            auditLogger.catat("auth.login", request.username(), "GAGAL:KREDENSIAL");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         loginAttempts.reset(request.username());
-        auditLogger.catat("auth.login", request.username(), "BERHASIL");
         AppUser user = found.get();
         String token = jwtService.issue(user, Instant.now(clock));
-        return ResponseEntity.ok(new LoginResponse(token, String.join(",", user.roles())));
+        return ResponseEntity.ok(new AuthResponse(token, user.tipe(), user.roles()));
     }
 }

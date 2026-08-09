@@ -74,13 +74,18 @@ Dua bentuk yang dibuat di sini:
 
 | Path | Aturan |
 |---|---|
-| `/api/safe/login` | terbuka |
+| `/api/safe/login`, `/api/auth/**` | terbuka |
 | `/api/vuln/**` | terbuka — memang begitu maunya |
-| `DELETE /api/karyawan/**`, `/api/karyawan2/**` | `ROLE_ADMIN` |
-| `POST`/`PUT`/`DELETE` `/api/payroll/**` | `ROLE_HR` |
+| `GET /api/karyawan/**` | `ADMIN`, `MANAGER`, `MARKETING`, `SALES`, `HR`, `KARYAWAN` |
+| `POST`/`PUT` `/api/karyawan/**` | `ADMIN`, `MANAGER` |
+| `DELETE /api/karyawan/**`, `/api/karyawan2/**` | `ADMIN` |
+| `/api/payroll/**` | `ADMIN`, `MANAGER`, `HR` — `DELETE` hanya `ADMIN` dan `HR` |
+| `GET /api/customer/me` | `CUSTOMER` |
 | sisanya | wajib token |
 
 Tanpa token dibalas **401**; token sah tapi peran kurang dibalas **403**.
+
+Peran `ADMIN`, `MANAGER`, `MARKETING`, dan `SALES` datang dari tabel `masesas.karyawan_role` dan dibaca ulang dari database pada setiap request. Peran `HR` dan `KARYAWAN` hanya ada di registry akun demo di memori — dipertahankan khusus untuk latihan A01 dan A07 ini. Rancangannya dijelaskan di [IMPLEMENTATION-PLAN-RBAC-FASE2.md](./IMPLEMENTATION-PLAN-RBAC-FASE2.md).
 
 ### Mencobanya
 

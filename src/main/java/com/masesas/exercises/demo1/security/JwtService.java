@@ -47,8 +47,9 @@ public class JwtService {
     private JwtBuilder builder(AppUser user, Instant issuedAt) {
         return Jwts.builder()
                 .subject(user.getUsername())
-                .claim("role", user.role())
+                .claim("roles", user.roles())
                 .claim("idKaryawan", user.idKaryawan())
+                .claim("tipe", user.tipe())
                 .issuedAt(Date.from(issuedAt))
                 .signWith(key);
     }

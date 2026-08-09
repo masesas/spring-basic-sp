@@ -61,6 +61,7 @@ public class SecurityConfig {
                         .frameOptions(frame -> frame.deny()))
                 .authorizeHttpRequests(request -> request
                         .requestMatchers("/api/safe/login").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/vuln/**").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/karyawan/**", "/api/karyawan2/**")
                         .hasRole("ADMIN")

@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,6 +31,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/karyawan")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('ADMIN','MANAGER','MARKETING','SALES','HR','KARYAWAN')")
 public class KaryawanController {
 
     private final KaryawanService karyawanService;
@@ -37,6 +39,7 @@ public class KaryawanController {
     /** POST /api/karyawan — buat karyawan baru. */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public KaryawanResponse create(@Valid @RequestBody CreateKaryawanRequest request) {
         return karyawanService.create(request);
     }
@@ -76,6 +79,7 @@ public class KaryawanController {
 
     /** PUT /api/karyawan/{id} — ubah data karyawan. */
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public KaryawanResponse update(@PathVariable Integer id, @Valid @RequestBody UpdateKaryawanRequest request) {
         return karyawanService.update(id, request);
     }
@@ -83,18 +87,21 @@ public class KaryawanController {
     /** DELETE /api/karyawan/{id} — soft delete karyawan. */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
     public void delete(@PathVariable Integer id) {
         karyawanService.delete(id);
     }
 
     /** PUT /api/karyawan/{id}/detail — tambah atau ubah detail karyawan. */
     @PutMapping("/{id}/detail")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public KaryawanResponse upsertDetail(@PathVariable Integer id, @Valid @RequestBody DetailKaryawanRequest request) {
         return karyawanService.upsertDetail(id, request);
     }
 
     /** DELETE /api/karyawan/{id}/detail — hapus detail karyawan saja. */
     @DeleteMapping("/{id}/detail")
+    @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public KaryawanResponse removeDetail(@PathVariable Integer id) {
         return karyawanService.removeDetail(id);
     }
