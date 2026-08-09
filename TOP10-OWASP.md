@@ -31,7 +31,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=owasp-demo
 | [A01](#a01--broken-access-control) | Broken Access Control | `/api/vuln/payroll/{id}` | `/api/safe/payroll/{id}` | ✅ **Selesai** |
 | [A02](#a02--cryptographic-failures) | Cryptographic Failures | `/api/vuln/karyawan/{id}/detail` | `/api/safe/karyawan/{id}/detail` | ⬜ Belum |
 | [A03-SQL](#a03--injection--sql) | Injection — SQL | `/api/vuln/karyawan/search` | `/api/safe/karyawan/search` | ✅ **Selesai** |
-| [A03-XSS](#a03--injection--xss) | Injection — XSS | `POST /api/vuln/karyawan` | `POST /api/safe/karyawan` | ⬜ Belum |
+| [A03-XSS](#a03--injection--xss) | Injection — XSS | `POST /api/vuln/karyawan/teks` | `POST /api/safe/karyawan/teks` | ✅ **Selesai** |
 | [A04](#a04--insecure-design) | Insecure Design | `/api/vuln/login` | `/api/safe/login` | ⬜ Belum |
 | [A05](#a05--security-misconfiguration) | Security Misconfiguration | — *(konfigurasi)* | — *(konfigurasi)* | ⬜ Belum |
 | [A06](#a06--vulnerable-and-outdated-components) | Vulnerable & Outdated Components | — *(pom.xml)* | — *(pom.xml)* | ⬜ Belum |
@@ -213,9 +213,44 @@ Dua bentuk yang dibuat di sini:
 | Rentan | `owasp/vuln/A03XssVulnController.java` |
 | Aman | `owasp/safe/A03XssSafeController.java` |
 | Pendukung | `owasp/safe/InputSanitizer.java` |
-| Test | `owasp/A03XssTest.java` |
+| Test | `owasp/A03XssTest.java` — 6 test, semua lulus |
 
 **Cara amannya:** tag HTML pada field teks bebas ditolak, header `X-Content-Type-Options: nosniff` dipasang, dan karakter `\r` `\n` dibuang sebelum input masuk log.
+
+### Kenapa menolak, bukan meng-escape
+
+API ini mengembalikan JSON, dan yang menampilkannya bisa siapa saja — halaman web, aplikasi mobile, laporan Excel. Kalau kita meng-escape untuk HTML di sisi server, klien non-HTML akan menerima `&lt;script&gt;` yang salah tampil. Karena `nama` dan `alamat` memang tidak pernah wajar memuat `<` atau `>`, menolaknya di gerbang masuk lebih sederhana dan tidak membebani klien.
+
+### Log injection
+
+Payload berisi baris baru bisa memalsukan baris log:
+
+```
+keyword=budi
+WARN  Saldo kas berhasil ditransfer ke rekening penyerang
+```
+
+Bagi mata manusia dan bagi banyak parser log, baris kedua tampak seperti log asli dari aplikasi. Versi aman mengganti `\r` dan `\n` jadi `_` sehingga satu input tetap jadi satu baris:
+
+```
+keyword=budi_WARN  Saldo kas berhasil ditransfer ke rekening penyerang
+```
+
+### Mencobanya
+
+```bash
+# RENTAN: script tersimpan utuh dan dikembalikan apa adanya
+curl -s -X POST localhost:8080/api/vuln/karyawan/teks \
+  -H 'Content-Type: application/json' \
+  -d '{"nama":"<script>alert(1)</script>","alamat":"Jakarta"}'
+
+# AMAN: ditolak 400 sebelum menyentuh database
+curl -s -X POST localhost:8080/api/safe/karyawan/teks \
+  -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"nama":"<script>alert(1)</script>","alamat":"Jakarta"}'
+```
+
+> `X-Content-Type-Options: nosniff` sebenarnya sudah dipasang Spring Security secara bawaan. Test di sini memastikan header itu tidak hilang tanpa sengaja. Pengerasan header selengkapnya (CSP, HSTS) menyusul di [A05](#a05--security-misconfiguration).
 
 ---
 
