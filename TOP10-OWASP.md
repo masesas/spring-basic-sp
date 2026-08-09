@@ -35,7 +35,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=owasp-demo
 | [A04](#a04--insecure-design) | Insecure Design | `/api/vuln/login` | `/api/safe/login` | ⬜ Belum |
 | [A05](#a05--security-misconfiguration) | Security Misconfiguration | — *(konfigurasi)* | — *(konfigurasi)* | ⬜ Belum |
 | [A06](#a06--vulnerable-and-outdated-components) | Vulnerable & Outdated Components | — *(pom.xml)* | — *(pom.xml)* | ⬜ Belum |
-| [A07](#a07--identification-and-authentication-failures) | Identification & Authentication Failures | `POST /api/vuln/login` | `POST /api/safe/login` | ⬜ Belum |
+| [A07](#a07--identification-and-authentication-failures) | Identification & Authentication Failures | `POST /api/vuln/login` | `POST /api/safe/login` | ✅ **Selesai** |
 | [A08](#a08--software-and-data-integrity-failures) | Software & Data Integrity Failures | `PUT /api/vuln/payroll` | `PUT /api/safe/payroll` | ⬜ Belum |
 | [A09](#a09--security-logging-and-monitoring-failures) | Security Logging & Monitoring Failures | — *(aspect)* | — *(aspect)* | ⬜ Belum |
 | [A10](#a10--server-side-request-forgery-ssrf) | Server-Side Request Forgery | `POST /api/vuln/karyawan/{id}/foto` | `POST /api/safe/karyawan/{id}/foto` | ⬜ Belum |
@@ -232,12 +232,41 @@ Dua bentuk yang dibuat di sini:
 |---|---|
 | Rentan | `owasp/vuln/A07VulnController.java` |
 | Aman | `owasp/safe/A07SafeController.java` |
-| Pendukung | `security/JwtService.java`, `security/JwtAuthFilter.java`, `security/LoginAttemptService.java` |
-| Test | `owasp/A07AuthTest.java` |
+| Pendukung | `security/JwtService.java`, `security/JwtAuthFilter.java`, `security/LoginAttemptService.java`, `security/AppUser.java`, `security/AppUserDetailsService.java` |
+| Test | `owasp/A07AuthTest.java` — 5 test, semua lulus |
 
 **Cara amannya:** JWT dengan masa berlaku 15 menit, password diverifikasi lewat bcrypt, dan akun dikunci 15 menit setelah 5 kali gagal (penghitung disimpan di Redis).
 
-Tiga akun uji tersedia: `admin`, `hr`, `karyawan`.
+### Akun uji
+
+| Username | Peran | `idKaryawan` |
+|---|---|---|
+| `admin` | `ROLE_ADMIN` | — |
+| `hr` | `ROLE_HR` | — |
+| `karyawan` | `ROLE_KARYAWAN` | 1 |
+
+Password ketiganya sama, diambil dari properti `app.demo.password` (nilai awal `Password123!`).
+
+### Mencobanya
+
+```bash
+# versi aman - token berlaku 15 menit
+curl -s -X POST localhost:8080/api/safe/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"hr","password":"Password123!"}'
+
+# versi rentan - token tanpa masa berlaku, berlaku selamanya
+curl -s -X POST localhost:8080/api/vuln/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"hr","password":"Password123!"}'
+
+# salah password 5x di /api/safe/login -> percobaan ke-6 dibalas 423 Locked
+# salah password berapa kali pun di /api/vuln/login -> tidak pernah terkunci
+```
+
+Tempel `token` ke request berikutnya sebagai `Authorization: Bearer <token>`.
+
+> `app.jwt.secret` dan `app.demo.password` masih tertulis di `application.properties`. Keduanya pindah ke `.env` pada Fase 3 (A05).
 
 ---
 
