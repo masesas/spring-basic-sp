@@ -18,7 +18,6 @@ import com.masesas.exercises.demo1.service.support.Validators;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.parameters.P;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,6 +50,8 @@ public class PayrollServiceImpl implements PayrollService {
                     "Slip gaji periode " + periode + " untuk karyawan tersebut sudah ada");
         }
 
+        KomponenGaji komponen = komponenDari(
+                request.gajiPokok(), request.tunjangan(), request.potongan());
 
         PayrollKaryawan payroll =
                 PayrollKaryawan.baru(karyawan, periode, komponen, Instant.now(clock));
@@ -72,12 +73,9 @@ public class PayrollServiceImpl implements PayrollService {
     }
 
 
+    @Override
     public PayrollResponse findById(Integer idKaryawan, LocalDate periode) {
-        PayrollId payrollId = new PayrollId(idKaryawan, periode);
-        PayrollKaryawan payrollKaryawan = payrollRepository.findById(payrollId)
-                .orElseThrow(() -> new RuntimeException("karyawan=" + idKaryawan + " tidak ada & periode=" + periode));
-        //return PayrollResponse.from(payrollKaryawan);
-        //return payrollKaryawan;
+        return PayrollResponse.from(requireExisting(idKaryawan, periode));
     }
 
     @Override

@@ -125,20 +125,9 @@ public class KaryawanServiceImpl implements KaryawanService {
         Pageable pageable = PageRequest.of(page, size, Sort.by("id"));
         Page<Karyawan> pageKaryawan = karyawanRepository.findAllByNamaContainingIgnoreCaseAndDeletedDateIsNull(nama, pageable);
 
-        /*List<Karyawan> karyawanContents = pageKaryawan.getContent();
-        List<KaryawanResponse> karyawanResponses = new ArrayList<>();
-        for (int i = 0; i < karyawanContents.size(); i++) {
-            KaryawanResponse karyawanResponse = new KaryawanResponse();
-            //lengkpi semua field dari karyawan
-            karyawanResponses.add(karyawanResponse);
-        }*/
-
-        List<KaryawanResponse> karyawanResponses = pageKaryawan.getContent().stream().map(r -> {
-            KaryawanResponse response = new KaryawanResponse();
-            // mapping field
-            return response;
-        }).toList();
-
+        List<KaryawanResponse> karyawanResponses = pageKaryawan.getContent().stream()
+                .map(KaryawanResponse::from)
+                .toList();
 
         return new PageImpl<>(
                 karyawanResponses,
