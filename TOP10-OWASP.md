@@ -33,7 +33,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=owasp-demo
 | [A03-SQL](#a03--injection--sql) | Injection — SQL | `/api/vuln/karyawan/search` | `/api/safe/karyawan/search` | ✅ **Selesai** |
 | [A03-XSS](#a03--injection--xss) | Injection — XSS | `POST /api/vuln/karyawan/teks` | `POST /api/safe/karyawan/teks` | ✅ **Selesai** |
 | [A04](#a04--insecure-design) | Insecure Design | `/api/vuln/login`, `PUT /api/vuln/payroll/…` | `/api/safe/login`, `PUT /api/payroll/…` | ✅ **Selesai** |
-| [A05](#a05--security-misconfiguration) | Security Misconfiguration | — *(konfigurasi)* | — *(konfigurasi)* | ⬜ Belum |
+| [A05](#a05--security-misconfiguration) | Security Misconfiguration | — *(konfigurasi)* | — *(konfigurasi)* | ✅ **Selesai** |
 | [A06](#a06--vulnerable-and-outdated-components) | Vulnerable & Outdated Components | — *(pom.xml)* | — *(pom.xml)* | ⬜ Belum |
 | [A07](#a07--identification-and-authentication-failures) | Identification & Authentication Failures | `POST /api/vuln/login` | `POST /api/safe/login` | ✅ **Selesai** |
 | [A08](#a08--software-and-data-integrity-failures) | Software & Data Integrity Failures | `PUT /api/vuln/payroll` | `PUT /api/safe/payroll` | ⬜ Belum |
@@ -379,11 +379,51 @@ Dua bentuk yang diperbaiki:
 |---|---|
 | Sebelum | `src/main/resources/application.properties` |
 | Sesudah | `.env`, `.env.example`, `.gitignore`, `config/SecurityConfig.java` |
-| Test | `owasp/A05MisconfigTest.java` |
+| Test | `owasp/A05MisconfigTest.java` — 7 test, semua lulus |
 
 **Cara amannya:** kredensial pindah ke `.env` yang tidak ikut di-commit, `.env.example` berisi placeholder untuk panduan, security header dipasang di `SecurityConfig`, `show-sql` dimatikan, dan stacktrace tidak pernah dikirim ke klien.
 
-> **Belum selesai:** password lama sudah terlanjur ter-commit ke repo publik dan **harus dirotasi**. Menghapus git history saja tidak cukup. Lihat bagian 8 di [IMPLEMENTATION-PLAN.md](./IMPLEMENTATION-PLAN.md).
+### Menjalankan setelah clone
+
+```bash
+cp .env.example .env
+# isi nilainya, lalu:
+./mvnw spring-boot:run
+```
+
+Tanpa `.env`, aplikasi **gagal start** dengan pesan placeholder tidak bisa di-resolve. Itu disengaja — tidak ada nilai bawaan yang diam-diam lolos ke lingkungan nyata.
+
+Spring Boot tidak membaca `.env` secara bawaan. Yang membuatnya terbaca adalah satu baris di `application.properties`:
+
+```properties
+spring.config.import=optional:file:.env[.properties]
+```
+
+Penanda `[.properties]` memberi tahu Spring cara mem-parsing berkas tanpa ekstensi yang dikenal. Konsekuensinya `.env` mengikuti aturan `.properties`: **tanpa awalan `export`, tanpa tanda kutip** — tanda kutip akan ikut terbaca sebagai bagian dari nilai.
+
+### Security header yang dipasang
+
+| Header | Nilai | Gunanya |
+|---|---|---|
+| `Content-Security-Policy` | `default-src 'none'; frame-ancestors 'none'; base-uri 'none'` | API ini tidak pernah perlu memuat aset apa pun |
+| `X-Frame-Options` | `DENY` | Cegah clickjacking |
+| `X-Content-Type-Options` | `nosniff` | Browser tidak menebak-nebak tipe konten |
+| `Referrer-Policy` | `no-referrer` | URL yang memuat ID tidak bocor ke situs lain |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Hanya dikirim pada koneksi HTTPS |
+
+### CORS
+
+Origin ditulis eksplisit lewat `app.cors.allowed-origins`, **bukan** `*`. Dengan `allowCredentials` menyala, wildcard ditolak spesifikasi CORS — dan seandainya diizinkan pun, artinya situs mana pun boleh memanggil API ini memakai kredensial korban. Origin asing dibalas **403** pada preflight.
+
+### Yang masih terbuka
+
+| Hal | Status |
+|---|---|
+| Kredensial keluar dari `application.properties` | ✅ selesai |
+| `JWT_SECRET` dan `CRYPTO_KEY` dibuat baru, tidak pernah ter-commit | ✅ selesai |
+| Password DB/Redis lama masih ada di riwayat git repo publik | ❌ **belum dirotasi** |
+
+Password `binar_bc_password` sudah terlanjur ter-push ke repo publik sejak commit pertama. Memindahkannya ke `.env` **tidak menghapus jejak itu**. Perbaikan sesungguhnya adalah rotasi, dan karena `binar_finance` dipakai beberapa peserta, rotasi perlu koordinasi dengan pengelolanya. Ditunda atas keputusan pemilik proyek.
 
 ---
 
