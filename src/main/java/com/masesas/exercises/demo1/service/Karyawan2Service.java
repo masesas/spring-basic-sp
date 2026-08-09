@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -60,9 +61,11 @@ public class Karyawan2Service {
                     page * size);
             Long total = jdbcTemplate.queryForObject(COUNT_SQL, Long.class);
             return new PageImpl<>(content, PageRequest.of(page, size), total == null ? 0 : total);
-        } catch (Exception e) {
-            log.error("this is error message {}", e.getMessage());
-            throw new RuntimeException("ini adalah error method page di dalam service karyawan");
+        } catch (DataAccessException e) {
+            // e ditaruh sebagai argumen terakhir tanpa placeholder supaya SLF4J mencetak
+            // stacktrace-nya; e.getMessage() saja membuang jejak asal masalahnya.
+            log.error("Gagal mengambil halaman karyawan page={} size={}", page, size, e);
+            throw e;
         }
     }
 

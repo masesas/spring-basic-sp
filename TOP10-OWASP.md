@@ -37,7 +37,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=owasp-demo
 | [A06](#a06--vulnerable-and-outdated-components) | Vulnerable & Outdated Components | — *(pom.xml)* | — *(pom.xml)* | ⬜ Belum |
 | [A07](#a07--identification-and-authentication-failures) | Identification & Authentication Failures | `POST /api/vuln/login` | `POST /api/safe/login` | ✅ **Selesai** |
 | [A08](#a08--software-and-data-integrity-failures) | Software & Data Integrity Failures | `PUT /api/vuln/payroll/…/tanpa-versi` | `PUT /api/payroll/…` | ✅ **Selesai** |
-| [A09](#a09--security-logging-and-monitoring-failures) | Security Logging & Monitoring Failures | — *(aspect)* | — *(aspect)* | ⬜ Belum |
+| [A09](#a09--security-logging-and-monitoring-failures) | Security Logging & Monitoring Failures | — *(aspect)* | — *(aspect)* | ✅ **Selesai** |
 | [A10](#a10--server-side-request-forgery-ssrf) | Server-Side Request Forgery | `POST /api/vuln/karyawan/{id}/foto` | `POST /api/safe/karyawan/{id}/foto` | ⬜ Belum |
 
 Tiga kategori (A05, A06, A09) tidak berbentuk endpoint — bedanya ada di file konfigurasi, bukan di URL.
@@ -590,11 +590,48 @@ Dua bentuk yang diperbaiki:
 
 | | Lokasi |
 |---|---|
-| Aman | `owasp/safe/AuditAspect.java`, `owasp/safe/CorrelationIdFilter.java` |
+| Aman | `owasp/safe/AuditAspect.java`, `owasp/safe/AuditLogger.java`, `owasp/safe/CorrelationIdFilter.java` |
 | Diperbaiki | `service/Karyawan2Service.java` |
-| Test | `owasp/A09LoggingTest.java` |
+| Test | `owasp/A09LoggingTest.java` — 6 test, semua lulus |
 
 **Cara amannya:** setiap operasi tulis payroll menghasilkan satu baris audit berisi aktor, aksi, waktu, dan IP; setiap permintaan diberi correlation ID sehingga seluruh lognya bisa ditelusuri sebagai satu rangkaian; event login sukses dan gagal ikut dicatat.
+
+### Bentuk baris audit
+
+```
+aksi=payroll.update sasaran=12,2026-08-01 aktor=hr peran=ROLE_HR ip=127.0.0.1 hasil=BERHASIL
+aksi=auth.login     sasaran=hr            aktor=anonim peran=- ip=127.0.0.1 hasil=GAGAL:KREDENSIAL
+```
+
+Empat keputusan di baliknya:
+
+| Keputusan | Alasan |
+|---|---|
+| Logger bernama `AUDIT`, bukan nama kelas | Jejak audit punya pembaca dan masa simpan berbeda dari log debug, jadi harus bisa dipisah ke appender sendiri |
+| Aspect ditempel di **service**, bukan controller | Jalur lain yang memanggil service langsung — job terjadwal, importer, controller baru — tetap tercatat |
+| Operasi **gagal** ikut dicatat | Percobaan yang ditolak justru sinyal serangan paling berharga. Log yang hanya mencatat keberhasilan buta terhadap penyusup yang sedang meraba-raba |
+| Hanya argumen bertipe sederhana yang dicatat | Objek request lengkap memuat nominal gaji. Jejak audit tidak boleh jadi tempat bocornya data yang justru sedang dilindungi |
+
+### Correlation ID
+
+Setiap request dapat `X-Correlation-Id` — dipakai ulang kalau klien mengirimnya, dibuatkan baru kalau tidak. Nilainya masuk MDC sehingga muncul di **setiap** baris log request itu:
+
+```properties
+logging.pattern.level=%5p [%X{correlationId:-tanpa-id}]
+```
+
+Nilai dari klien **tidak pernah dipercaya mentah**. Ia masuk ke setiap baris log, jadi baris baru di dalamnya bisa memalsukan entri log — persis serangan yang sama seperti di [A03 XSS](#a03--injection--xss). Karena itu disanitasi lewat `InputSanitizer.untukLog()` dan dipotong di 64 karakter supaya satu request tidak bisa membanjiri berkas log.
+
+### Yang diperbaiki
+
+`Karyawan2Service` sebelumnya menulis:
+
+```java
+log.error("this is error message {}", e.getMessage());
+throw new RuntimeException("ini adalah error method page di dalam service karyawan");
+```
+
+Dua masalah: `e.getMessage()` membuang stacktrace sehingga asal masalahnya hilang, dan membungkus ulang jadi `RuntimeException` generik menghapus tipe exception aslinya. Sekarang exception-nya diteruskan sebagai argumen terakhir tanpa placeholder — cara SLF4J mencetak stacktrace penuh — dan exception aslinya dilempar ulang apa adanya.
 
 ---
 

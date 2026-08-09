@@ -29,21 +29,25 @@ public class A07SafeController {
     private final PasswordEncoder passwordEncoder;
     private final LoginAttemptService loginAttempts;
     private final JwtService jwtService;
+    private final AuditLogger auditLogger;
     private final Clock clock;
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         if (loginAttempts.isLocked(request.username())) {
+            auditLogger.catat("auth.login", request.username(), "DITOLAK:TERKUNCI");
             return ResponseEntity.status(HttpStatus.LOCKED).build();
         }
 
         Optional<AppUser> found = userDetailsService.find(request.username());
         if (found.isEmpty() || !passwordEncoder.matches(request.password(), found.get().getPassword())) {
             loginAttempts.recordFailure(request.username());
+            auditLogger.catat("auth.login", request.username(), "GAGAL:KREDENSIAL");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
         loginAttempts.reset(request.username());
+        auditLogger.catat("auth.login", request.username(), "BERHASIL");
         AppUser user = found.get();
         String token = jwtService.issue(user, Instant.now(clock));
         return ResponseEntity.ok(new LoginResponse(token, user.role()));
