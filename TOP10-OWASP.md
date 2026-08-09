@@ -480,6 +480,22 @@ mvn verify -Dnvd.api.key=ISI_API_KEY_ANDA
 
 Basis datanya di-cache setelah unduhan pertama, jadi pemindaian berikutnya jauh lebih cepat.
 
+### Hasil pemindaian nyata
+
+Pemindaian pertama menemukan **20 CVE dengan CVSS ≥ 7**. Penanganannya:
+
+| Dependency | Sebelum | Sesudah | Cara |
+|---|---|---|---|
+| `netty-transport` | 12 CVE, tertinggi 9.1 | **0** | naik 4.2.15 → 4.2.17.Final |
+| `tomcat-embed-*` | 6 CVE, 9.1 ×4 | **1 tersisa** | naik 11.0.22 → 11.0.24 |
+| `postgresql` | 1 CVE (8.2) | **0** | naik 42.7.11 → 42.7.13 |
+| `spring-boot-devtools` | 1 CVE (9.8) | **0** | false positive, di-suppress |
+| `angus-activation` | 1 CVE (7.5) | **1 tersisa** | sudah versi stabil terbaru |
+
+**18 dari 20 benar-benar diperbaiki** dengan menaikkan versi. Spring Boot 4.1.0 sendiri sudah rilis terbaru, jadi ketiga versi ditimpa manual lewat properti `netty.version`, `tomcat.version`, dan `postgresql.version` di `pom.xml`.
+
+Dua sisanya **belum ada patch-nya** — versi terpasang sudah yang terbaru tersedia. Keduanya dicatat di berkas suppression sebagai **risiko yang diterima sadar**, bukan false positive, lengkap dengan tanggal tinjau ulang 2026-11-09 dan langkah yang harus dilakukan saat ditinjau.
+
 ### Menekan temuan
 
 `dependency-check-suppressions.xml` menampung temuan yang sengaja diabaikan — misalnya false positive, atau CVE yang tidak menyentuh jalur kode yang kita pakai. Setiap entri **wajib** memuat alasan tertulis dan tanggal peninjauan ulang. Menekan temuan tanpa alasan sama saja mematikan A06 diam-diam, hanya dengan cara yang lebih sulit dilihat.

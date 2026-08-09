@@ -36,6 +36,18 @@
         <dependency-check.failOnCVSS>7</dependency-check.failOnCVSS>
         <!-- Kosong = tanpa API key, pemindaian jauh lebih lambat. Timpa lewat -Dnvd.api.key=... -->
         <nvd.api.key></nvd.api.key>
+
+        <!--
+            Menimpa versi bawaan spring-boot-dependencies:4.1.0 karena pemindaian A06
+            menemukan CVE dengan CVSS >= 7 pada ketiganya. Spring Boot 4.1.0 sendiri
+            sudah versi terbaru, jadi tidak bisa diperbaiki dengan menaikkan parent.
+
+            Hapus baris-baris ini ketika parent sudah membawa versi yang sama atau
+            lebih baru — kalau tidak, justru bisa menahan proyek di versi lama.
+        -->
+        <netty.version>4.2.17.Final</netty.version>
+        <tomcat.version>11.0.24</tomcat.version>
+        <postgresql.version>42.7.13</postgresql.version>
     </properties>
     <dependencies>
         <dependency>
@@ -149,6 +161,17 @@
                     </formats>
                     <!-- Analyzer untuk ekosistem lain hanya memperlambat, tidak dipakai di sini. -->
                     <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+                    <!--
+                        OSS Index dimatikan: layanannya membalas 401 untuk akses anonim,
+                        sehingga build gagal karena alasan jaringan, bukan karena temuan
+                        keamanan. Build yang gagal karena sebab di luar kendali kita
+                        melatih orang untuk mengabaikan kegagalannya.
+
+                        NVD tetap sumber utama dan tidak terpengaruh. Untuk menyalakan
+                        kembali, sediakan kredensial lewat ossIndexUsername dan
+                        ossIndexPassword lalu ubah nilai ini jadi true.
+                    -->
+                    <ossindexAnalyzerEnabled>false</ossindexAnalyzerEnabled>
                     <nuspecAnalyzerEnabled>false</nuspecAnalyzerEnabled>
                     <nodeAnalyzerEnabled>false</nodeAnalyzerEnabled>
                     <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
