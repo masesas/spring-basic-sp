@@ -30,7 +30,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=owasp-demo
 |---|---|---|---|---|
 | [A01](#a01--broken-access-control) | Broken Access Control | `/api/vuln/payroll/{id}` | `/api/safe/payroll/{id}` | ✅ **Selesai** |
 | [A02](#a02--cryptographic-failures) | Cryptographic Failures | `/api/vuln/karyawan/{id}/detail` | `/api/safe/karyawan/{id}/detail` | ⬜ Belum |
-| [A03-SQL](#a03--injection--sql) | Injection — SQL | `/api/vuln/karyawan/search` | `/api/safe/karyawan/search` | ⬜ Belum |
+| [A03-SQL](#a03--injection--sql) | Injection — SQL | `/api/vuln/karyawan/search` | `/api/safe/karyawan/search` | ✅ **Selesai** |
 | [A03-XSS](#a03--injection--xss) | Injection — XSS | `POST /api/vuln/karyawan` | `POST /api/safe/karyawan` | ⬜ Belum |
 | [A04](#a04--insecure-design) | Insecure Design | `/api/vuln/login` | `/api/safe/login` | ⬜ Belum |
 | [A05](#a05--security-misconfiguration) | Security Misconfiguration | — *(konfigurasi)* | — *(konfigurasi)* | ⬜ Belum |
@@ -150,12 +150,50 @@ Dua bentuk yang dibuat di sini:
 |---|---|
 | Rentan | `owasp/vuln/A03SqlVulnController.java` |
 | Aman | `owasp/safe/A03SqlSafeController.java` |
-| Pendukung | `owasp/safe/SortField.java`, anotasi validasi di seluruh `dto/` |
-| Test | `owasp/A03SqlInjectionTest.java` |
+| Pendukung | `owasp/safe/SortField.java`, anotasi validasi di 5 DTO, `exception/GlobalExceptionHandler.java` |
+| Test | `owasp/A03SqlInjectionTest.java` — 7 test, semua lulus |
 
 **Cara amannya:** semua nilai lewat bind parameter `?`, nama kolom sort dibatasi daftar tetap (`enum SortField`), dan seluruh input divalidasi lebih dulu dengan `@Valid`.
 
-> Catatan: kode yang ada sekarang **sudah** memakai bind parameter dengan benar. Versi rentan dibuat khusus untuk demonstrasi.
+### Kenapa `ORDER BY` butuh perlakuan berbeda
+
+Bind parameter `?` hanya bisa menggantikan **nilai**, tidak bisa menggantikan **nama kolom**. Jadi `ORDER BY ?` tidak akan pernah bekerja. Satu-satunya cara aman adalah membandingkan input dengan daftar tetap:
+
+```java
+SortField.dari(by).kolom()   // hanya id, nama, status yang lolos
+```
+
+Inilah alasan `SortField` berupa `enum`, bukan `String` yang disaring dengan regex.
+
+### Validasi yang dipasang
+
+| DTO | Aturan |
+|---|---|
+| `CreateKaryawanRequest`, `UpdateKaryawanRequest` | `nama` wajib & maks 100, `status` harus `AKTIF`/`NONAKTIF` |
+| `DetailKaryawanRequest` | `nik` 16 digit, `npwp` 15 digit |
+| `PayrollRequest` | `idKaryawan` & `periode` wajib, nominal tidak boleh negatif |
+| `PayrollUpdateRequest` | nominal tidak boleh negatif |
+
+`GlobalExceptionHandler` memetakan `MethodArgumentNotValidException` (body) dan `ConstraintViolationException` (query param) ke **400** dengan amplop yang sama seperti error lain, menyebut field mana yang bermasalah.
+
+### Mencobanya
+
+```bash
+# RENTAN: bocor seluruh baris
+curl -s 'localhost:8080/api/vuln/karyawan/search?nama=%27%20OR%20%271%27=%271' | jq length
+
+# AMAN: payload sama, 0 baris - dianggap teks biasa
+curl -s 'localhost:8080/api/safe/karyawan/search?nama=%27%20OR%20%271%27=%271' \
+  -H "Authorization: Bearer $TOKEN" | jq length
+
+# RENTAN: ekspresi SQL sembarang dieksekusi -> error division by zero dari database
+curl -s 'localhost:8080/api/vuln/karyawan/sort?by=1/0'
+
+# AMAN: ditolak allowlist -> 400
+curl -s 'localhost:8080/api/safe/karyawan/sort?by=1/0' -H "Authorization: Bearer $TOKEN"
+```
+
+> Kode aplikasi yang sudah ada **memang sudah** memakai bind parameter dengan benar sejak awal. Controller rentan di `owasp/vuln` dibuat khusus untuk demonstrasi, bukan karena ada lubang nyata di sana.
 
 ---
 

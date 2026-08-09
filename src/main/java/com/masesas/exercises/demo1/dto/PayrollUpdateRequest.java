@@ -1,5 +1,7 @@
 package com.masesas.exercises.demo1.dto;
 
+import jakarta.validation.constraints.PositiveOrZero;
+
 import java.math.BigDecimal;
 
 /**
@@ -7,7 +9,7 @@ import java.math.BigDecimal;
  * diambil dari path URL dan tidak pernah bisa diubah — itu identitas barisnya.
  */
 public record PayrollUpdateRequest(
-        BigDecimal gajiPokok,
-        BigDecimal tunjangan,
-        BigDecimal potongan) {
+        @PositiveOrZero(message = "gajiPokok tidak boleh negatif") BigDecimal gajiPokok,
+        @PositiveOrZero(message = "tunjangan tidak boleh negatif") BigDecimal tunjangan,
+        @PositiveOrZero(message = "potongan tidak boleh negatif") BigDecimal potongan) {
 }

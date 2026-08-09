@@ -5,6 +5,7 @@ import com.masesas.exercises.demo1.dto.DetailKaryawanRequest;
 import com.masesas.exercises.demo1.dto.KaryawanResponse;
 import com.masesas.exercises.demo1.dto.UpdateKaryawanRequest;
 import com.masesas.exercises.demo1.service.KaryawanService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -36,7 +37,7 @@ public class KaryawanController {
     /** POST /api/karyawan — buat karyawan baru. */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public KaryawanResponse create(@RequestBody CreateKaryawanRequest request) {
+    public KaryawanResponse create(@Valid @RequestBody CreateKaryawanRequest request) {
         return karyawanService.create(request);
     }
 
@@ -75,7 +76,7 @@ public class KaryawanController {
 
     /** PUT /api/karyawan/{id} — ubah data karyawan. */
     @PutMapping("/{id}")
-    public KaryawanResponse update(@PathVariable Integer id, @RequestBody UpdateKaryawanRequest request) {
+    public KaryawanResponse update(@PathVariable Integer id, @Valid @RequestBody UpdateKaryawanRequest request) {
         return karyawanService.update(id, request);
     }
 
@@ -88,7 +89,7 @@ public class KaryawanController {
 
     /** PUT /api/karyawan/{id}/detail — tambah atau ubah detail karyawan. */
     @PutMapping("/{id}/detail")
-    public KaryawanResponse upsertDetail(@PathVariable Integer id, @RequestBody DetailKaryawanRequest request) {
+    public KaryawanResponse upsertDetail(@PathVariable Integer id, @Valid @RequestBody DetailKaryawanRequest request) {
         return karyawanService.upsertDetail(id, request);
     }
 

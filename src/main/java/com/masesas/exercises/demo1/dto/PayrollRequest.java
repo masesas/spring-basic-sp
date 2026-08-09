@@ -1,5 +1,8 @@
 package com.masesas.exercises.demo1.dto;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -10,9 +13,9 @@ import java.time.LocalDate;
  * (misal {@code 2026-08-17}); service akan menormalkannya ke tanggal 1.
  */
 public record PayrollRequest(
-        Integer idKaryawan,
-        LocalDate periode,
-        BigDecimal gajiPokok,
-        BigDecimal tunjangan,
-        BigDecimal potongan) {
+        @NotNull(message = "idKaryawan wajib diisi") Integer idKaryawan,
+        @NotNull(message = "periode wajib diisi") LocalDate periode,
+        @PositiveOrZero(message = "gajiPokok tidak boleh negatif") BigDecimal gajiPokok,
+        @PositiveOrZero(message = "tunjangan tidak boleh negatif") BigDecimal tunjangan,
+        @PositiveOrZero(message = "potongan tidak boleh negatif") BigDecimal potongan) {
 }

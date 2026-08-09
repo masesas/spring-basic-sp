@@ -4,6 +4,7 @@ import com.masesas.exercises.demo1.dto.PayrollRequest;
 import com.masesas.exercises.demo1.dto.PayrollResponse;
 import com.masesas.exercises.demo1.dto.PayrollUpdateRequest;
 import com.masesas.exercises.demo1.service.PayrollService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -44,7 +45,7 @@ public class PayrollController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('HR')")
-    public PayrollResponse create(@RequestBody PayrollRequest request) {
+    public PayrollResponse create(@Valid @RequestBody PayrollRequest request) {
         return payrollService.create(request);
     }
 
@@ -90,7 +91,7 @@ public class PayrollController {
     public PayrollResponse update(
             @PathVariable Integer idKaryawan,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periode,
-            @RequestBody PayrollUpdateRequest request) {
+            @Valid @RequestBody PayrollUpdateRequest request) {
         return payrollService.update(idKaryawan, periode, request);
     }
 
