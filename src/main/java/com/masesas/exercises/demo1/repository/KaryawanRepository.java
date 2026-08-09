@@ -25,6 +25,10 @@ public interface KaryawanRepository extends JpaRepository<Karyawan, Integer> {
     @EntityGraph(attributePaths = "detailKaryawan")
     List<Karyawan> findAllByDeletedDateIsNullOrderByIdAsc();
 
+    Optional<Karyawan> findByEmailAndDeletedDateIsNull(String email);
+
+    boolean existsByEmail(String email);
+
     boolean existsByIdAndDeletedDateIsNull(Integer id);
 
     boolean existsByDetailKaryawan_IdAndDeletedDateIsNull(Integer detailKaryawanId);

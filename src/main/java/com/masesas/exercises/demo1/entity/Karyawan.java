@@ -57,6 +57,12 @@ public class Karyawan {
     @Column(name = "status")
     private String status;
 
+    @Column(name = "email")
+    private String email;
+
+    @Column(name = "password")
+    private String password;
+
     @OneToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "detail_karyawan")
