@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import com.masesas.exercises.demo1.exception.BusinessRuleException;
 import lombok.Getter;
 import lombok.Setter;
@@ -58,6 +59,10 @@ public class PayrollKaryawan {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private StatusPayroll status = StatusPayroll.DRAFT;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
 
     @Column(name = "created_date")
     private Instant createdDate;

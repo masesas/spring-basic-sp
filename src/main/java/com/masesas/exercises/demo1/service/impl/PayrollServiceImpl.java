@@ -8,6 +8,7 @@ import com.masesas.exercises.demo1.entity.KomponenGaji;
 import com.masesas.exercises.demo1.entity.PayrollId;
 import com.masesas.exercises.demo1.entity.PayrollKaryawan;
 import com.masesas.exercises.demo1.exception.BusinessRuleException;
+import com.masesas.exercises.demo1.exception.ConflictException;
 import com.masesas.exercises.demo1.exception.DuplicateResourceException;
 import com.masesas.exercises.demo1.exception.InvalidRequestException;
 import com.masesas.exercises.demo1.exception.ResourceNotFoundException;
@@ -64,12 +65,15 @@ public class PayrollServiceImpl implements PayrollService {
     public PayrollResponse update(Integer idKaryawan, LocalDate periode, PayrollUpdateRequest request) {
         Validators.requireNotNull(request, "data payroll");
         PayrollKaryawan payroll = requireExisting(idKaryawan, periode);
+        requireVersiTerbaru(payroll, request.version());
 
         KomponenGaji komponen = komponenDari(
                 request.gajiPokok(), request.tunjangan(), request.potongan());
         payroll.revisi(komponen, Instant.now(clock));
 
-        return PayrollResponse.from(payrollRepository.save(payroll));
+        // saveAndFlush, bukan save: @Version baru naik saat flush. Tanpa ini response
+        // mengembalikan versi lama dan klien mengirimkannya kembali sebagai versi basi.
+        return PayrollResponse.from(payrollRepository.saveAndFlush(payroll));
     }
 
 
@@ -78,7 +82,7 @@ public class PayrollServiceImpl implements PayrollService {
     public PayrollResponse approve(Integer idKaryawan, LocalDate periode) {
         PayrollKaryawan payroll = requireExisting(idKaryawan, periode);
         payroll.setujui(Instant.now(clock));
-        return PayrollResponse.from(payrollRepository.save(payroll));
+        return PayrollResponse.from(payrollRepository.saveAndFlush(payroll));
     }
 
     @Override
@@ -143,6 +147,20 @@ public class PayrollServiceImpl implements PayrollService {
             throw new BusinessRuleException("potongan melebihi total penghasilan");
         }
         return komponen;
+    }
+
+    /**
+     * {@code @Version} sendirian tidak cukup untuk API tanpa state: setiap request
+     * memuat ulang barisnya, jadi Hibernate tidak pernah melihat konflik. Klien harus
+     * mengirim balik versi yang dia lihat saat membaca — barulah edit di atas data
+     * basi bisa dikenali.
+     */
+    private void requireVersiTerbaru(PayrollKaryawan payroll, Long versiDikirim) {
+        if (versiDikirim != null && !versiDikirim.equals(payroll.getVersion())) {
+            throw new ConflictException(
+                    "Slip gaji sudah diubah orang lain (versi " + payroll.getVersion()
+                            + ", Anda mengirim " + versiDikirim + "). Muat ulang lalu coba lagi.");
+        }
     }
 
     private PayrollKaryawan requireExisting(Integer idKaryawan, LocalDate periode) {

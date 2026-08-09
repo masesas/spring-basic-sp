@@ -148,12 +148,12 @@ class PayrollServiceTest {
 
         when(payrollRepository.findById(new PayrollId(ID_KARYAWAN, PERIODE)))
                 .thenReturn(Optional.of(existing));
-        when(payrollRepository.save(any(PayrollKaryawan.class)))
+        when(payrollRepository.saveAndFlush(any(PayrollKaryawan.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
 
         PayrollResponse hasil = payrollService.update(ID_KARYAWAN, PERIODE,
                 new PayrollUpdateRequest(
-                        new BigDecimal("9000000"), new BigDecimal("1000000"), new BigDecimal("250000")));
+                        null, new BigDecimal("9000000"), new BigDecimal("1000000"), new BigDecimal("250000")));
 
         assertThat(hasil.bersih()).isEqualByComparingTo("9750000");
         assertThat(hasil.updatedDate()).isEqualTo(Instant.parse("2026-08-07T00:00:00Z"));

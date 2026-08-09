@@ -7,6 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -40,6 +41,23 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    /**
+     * Dua sumber konflik yang berbeda, keduanya bermuara ke 409.
+     *
+     * <p>{@link ConflictException} muncul saat klien mengirim {@code version} yang sudah
+     * basi — dia mengedit berdasarkan data yang keburu diubah orang lain.
+     * {@link ObjectOptimisticLockingFailureException} muncul saat dua transaksi menulis
+     * baris yang sama benar-benar bersamaan dan Hibernate mendeteksinya lewat kolom
+     * {@code version}.
+     */
+    @ExceptionHandler({ConflictException.class, ObjectOptimisticLockingFailureException.class})
+    public ResponseEntity<Map<String, Object>> handleConflict(Exception ex) {
+        String pesan = ex instanceof ConflictException
+                ? ex.getMessage()
+                : "Data sudah diubah orang lain. Muat ulang lalu coba lagi.";
+        return build(HttpStatus.CONFLICT, pesan);
     }
 
     @ExceptionHandler(DuplicateResourceException.class)

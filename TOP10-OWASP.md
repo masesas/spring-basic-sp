@@ -36,7 +36,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=owasp-demo
 | [A05](#a05--security-misconfiguration) | Security Misconfiguration | — *(konfigurasi)* | — *(konfigurasi)* | ✅ **Selesai** |
 | [A06](#a06--vulnerable-and-outdated-components) | Vulnerable & Outdated Components | — *(pom.xml)* | — *(pom.xml)* | ⬜ Belum |
 | [A07](#a07--identification-and-authentication-failures) | Identification & Authentication Failures | `POST /api/vuln/login` | `POST /api/safe/login` | ✅ **Selesai** |
-| [A08](#a08--software-and-data-integrity-failures) | Software & Data Integrity Failures | `PUT /api/vuln/payroll` | `PUT /api/safe/payroll` | ⬜ Belum |
+| [A08](#a08--software-and-data-integrity-failures) | Software & Data Integrity Failures | `PUT /api/vuln/payroll/…/tanpa-versi` | `PUT /api/payroll/…` | ✅ **Selesai** |
 | [A09](#a09--security-logging-and-monitoring-failures) | Security Logging & Monitoring Failures | — *(aspect)* | — *(aspect)* | ⬜ Belum |
 | [A10](#a10--server-side-request-forgery-ssrf) | Server-Side Request Forgery | `POST /api/vuln/karyawan/{id}/foto` | `POST /api/safe/karyawan/{id}/foto` | ⬜ Belum |
 
@@ -521,13 +521,59 @@ Dua bentuk yang dibuat di sini:
 | | Lokasi |
 |---|---|
 | Rentan | `owasp/vuln/A08VulnController.java` |
-| Aman | `owasp/safe/A08SafeController.java` |
-| Pendukung | `entity/PayrollKaryawan.java`, `config/RedisConfig.java` |
-| Test | `owasp/A08IntegrityTest.java` |
+| Aman | `controller/PayrollController.java`, `service/impl/PayrollServiceImpl.java` |
+| Pendukung | `entity/PayrollKaryawan.java`, `config/RedisConfig.java`, `exception/ConflictException.java` |
+| Migrasi | `payroll_karyawan_version_masesas.sql` |
+| Test | `owasp/A08IntegrityTest.java` — 5 test, semua lulus |
 
 **Cara amannya:** `@Version` (optimistic locking) membuat perubahan kedua ditolak dengan 409 alih-alih menimpa diam-diam, dan `RedisConfig` membatasi kelas yang boleh dideserialisasi lewat allowlist.
 
-> `RedisConfig` **sudah** memakai `BasicPolymorphicTypeValidator` dengan benar. Tugas di sini adalah mempertahankannya dan menambah test supaya tidak hilang tanpa sengaja.
+### `@Version` saja tidak cukup
+
+Ini bagian yang paling mudah salah dipahami. `@Version` melindungi dua transaksi yang menulis **bersamaan**. Tapi API ini stateless — setiap request memuat ulang barisnya dari nol, jadi dua request berurutan tidak pernah bentrok di mata Hibernate:
+
+```
+request A: baca (v0) ... tulis 6jt -> v1     ✅
+request B: baca (v1) ... tulis 7jt -> v2     ✅ padahal B mengedit layar lama
+```
+
+Yang hilang: B mengambil keputusan berdasarkan angka yang sudah basi. Solusinya **klien harus mengirim balik versi yang dia lihat** saat membaca:
+
+```json
+PUT /api/payroll/12/2026-08-01
+{"version": 0, "gajiPokok": 7000000}
+```
+
+Kalau `version` yang dikirim tidak sama dengan versi tersimpan, dibalas **409**. Dua lapis yang saling melengkapi:
+
+| Lapis | Menangkap |
+|---|---|
+| `version` di body request | Edit di atas data basi, walau jaraknya berjam-jam |
+| `@Version` Hibernate | Dua transaksi menulis benar-benar bersamaan |
+
+`version` bersifat opsional di request — dikirim `null` berarti melewati pengecekan lapis pertama. Ini menjaga pemanggil lama tetap jalan, tapi klien yang peduli konsistensi wajib mengirimkannya.
+
+### Allowlist deserialisasi Redis
+
+`RedisConfig` sudah memakai `BasicPolymorphicTypeValidator` sejak awal. Yang ditambahkan di sini: serializer-nya dipisah jadi bean tersendiri supaya **bisa diuji langsung**, plus test yang membuktikan `{"@class":"java.io.File",...}` ditolak. Tanpa test itu, allowlist bisa hilang saat refactor tanpa ada yang sadar sampai terlambat.
+
+### Mencobanya
+
+```bash
+# AMAN: kirim versi yang benar -> 200, version naik jadi 1
+curl -s -X PUT localhost:8080/api/payroll/12/2026-08-01 \
+  -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"version":0,"gajiPokok":6000000}'
+
+# AMAN: kirim versi basi -> 409
+curl -s -X PUT localhost:8080/api/payroll/12/2026-08-01 \
+  -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"version":0,"gajiPokok":7000000}'
+
+# RENTAN: tanpa cek versi, penulisan terakhir selalu menang
+curl -s -X PUT localhost:8080/api/vuln/payroll/12/2026-08-01/tanpa-versi \
+  -H 'Content-Type: application/json' -d '{"version":0,"gajiPokok":7000000}'
+```
 
 ---
 

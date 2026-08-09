@@ -22,6 +22,7 @@ public record PayrollResponse(
         BigDecimal bruto,
         BigDecimal bersih,
         StatusPayroll status,
+        Long version,
         Instant createdDate,
         Instant updatedDate) {
 
@@ -37,6 +38,7 @@ public record PayrollResponse(
                 komponen.bruto(),
                 komponen.bersih(),
                 payroll.getStatus(),
+                payroll.getVersion(),
                 payroll.getCreatedDate(),
                 payroll.getUpdatedDate());
     }

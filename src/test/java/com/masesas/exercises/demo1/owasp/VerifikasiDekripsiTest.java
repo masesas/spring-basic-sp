@@ -29,7 +29,7 @@ class VerifikasiDekripsiTest {
     @Test
     @DisplayName("baris hasil migrasi terbaca kembali sebagai NIK dan NPWP yang wajar")
     void barisHasilMigrasiTerbacaKembali() {
-        List<DetailKaryawan> sampel = detailKaryawanRepository.findAll().stream().limit(20).toList();
+        List<DetailKaryawan> sampel = detailKaryawanRepository.findAll();
 
         assertThat(sampel).isNotEmpty();
         assertThat(sampel).allSatisfy(detail -> {

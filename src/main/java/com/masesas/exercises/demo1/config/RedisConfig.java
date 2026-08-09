@@ -31,19 +31,32 @@ public class RedisConfig {
      */
     private static final String KEY_PREFIX = "demo1:";
 
+    /**
+     * Allowlist tipe yang boleh dibuat ulang dari JSON di Redis.
+     *
+     * <p>Tanpa validator ini, siapa pun yang bisa menulis ke Redis bisa menitipkan
+     * {@code @class} sembarangan dan memaksa aplikasi membuat objek kelas apa pun yang
+     * ada di classpath — jalur klasik menuju eksekusi kode. Dipisah jadi bean tersendiri
+     * supaya bisa diuji langsung, bukan hanya lewat cache manager.
+     */
     @Bean
-    public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory, ObjectMapper objectMapper) {
+    public GenericJacksonJsonRedisSerializer cacheValueSerializer() {
         PolymorphicTypeValidator typeValidator =
                 BasicPolymorphicTypeValidator.builder()
                         .allowIfSubType("com.masesas.exercises.demo1")
                         .allowIfSubType("java.util")
                         .build();
 
-        GenericJacksonJsonRedisSerializer valueSerializer =
-                GenericJacksonJsonRedisSerializer.builder()
-                        .enableDefaultTyping(typeValidator)
-                        .typePropertyName("@class")
-                        .build();
+        return GenericJacksonJsonRedisSerializer.builder()
+                .enableDefaultTyping(typeValidator)
+                .typePropertyName("@class")
+                .build();
+    }
+
+    @Bean
+    public RedisCacheManager cacheManager(
+            RedisConnectionFactory connectionFactory,
+            GenericJacksonJsonRedisSerializer valueSerializer) {
 
         RedisCacheConfiguration configuration =
                 RedisCacheConfiguration.defaultCacheConfig()

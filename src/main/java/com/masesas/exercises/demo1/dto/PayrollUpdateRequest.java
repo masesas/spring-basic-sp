@@ -9,6 +9,7 @@ import java.math.BigDecimal;
  * diambil dari path URL dan tidak pernah bisa diubah — itu identitas barisnya.
  */
 public record PayrollUpdateRequest(
+        Long version,
         @PositiveOrZero(message = "gajiPokok tidak boleh negatif") BigDecimal gajiPokok,
         @PositiveOrZero(message = "tunjangan tidak boleh negatif") BigDecimal tunjangan,
         @PositiveOrZero(message = "potongan tidak boleh negatif") BigDecimal potongan) {
