@@ -32,7 +32,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=owasp-demo
 | [A02](#a02--cryptographic-failures) | Cryptographic Failures | `/api/vuln/karyawan/{id}/detail` | `/api/safe/karyawan/{id}/detail` | ⬜ Belum |
 | [A03-SQL](#a03--injection--sql) | Injection — SQL | `/api/vuln/karyawan/search` | `/api/safe/karyawan/search` | ✅ **Selesai** |
 | [A03-XSS](#a03--injection--xss) | Injection — XSS | `POST /api/vuln/karyawan/teks` | `POST /api/safe/karyawan/teks` | ✅ **Selesai** |
-| [A04](#a04--insecure-design) | Insecure Design | `/api/vuln/login` | `/api/safe/login` | ⬜ Belum |
+| [A04](#a04--insecure-design) | Insecure Design | `/api/vuln/login`, `PUT /api/vuln/payroll/…` | `/api/safe/login`, `PUT /api/payroll/…` | ✅ **Selesai** |
 | [A05](#a05--security-misconfiguration) | Security Misconfiguration | — *(konfigurasi)* | — *(konfigurasi)* | ⬜ Belum |
 | [A06](#a06--vulnerable-and-outdated-components) | Vulnerable & Outdated Components | — *(pom.xml)* | — *(pom.xml)* | ⬜ Belum |
 | [A07](#a07--identification-and-authentication-failures) | Identification & Authentication Failures | `POST /api/vuln/login` | `POST /api/safe/login` | ✅ **Selesai** |
@@ -267,11 +267,48 @@ Dua bentuk yang dibuat di sini:
 
 | | Lokasi |
 |---|---|
-| Rentan | `owasp/vuln/A04VulnController.java` |
-| Aman | `owasp/safe/RateLimitFilter.java`, `service/impl/PayrollServiceImpl.java` |
-| Test | `owasp/A04InsecureDesignTest.java` |
+| Rentan | `owasp/vuln/A04VulnController.java` (revisi paksa), `owasp/vuln/A07VulnController.java` (login tanpa batas) |
+| Aman | `owasp/safe/RateLimitFilter.java`, `entity/PayrollKaryawan.java`, `entity/StatusPayroll.java` |
+| Migrasi | `payroll_karyawan_status_masesas.sql` |
+| Test | `owasp/A04InsecureDesignTest.java` — 5 test, semua lulus |
 
 **Cara amannya:** Bucket4j membatasi 10 permintaan per menit per IP, dan aturan bisnis ditegakkan di layer domain — slip berstatus `APPROVED` menolak revisi, periode masa depan ditolak.
+
+### State machine slip gaji
+
+```
+DRAFT  --(POST .../approve)-->  APPROVED
+  |                                 |
+  +-- boleh direvisi                +-- revisi ditolak 422, selamanya
+```
+
+Aturannya hidup di `PayrollKaryawan.revisi()`, **bukan di controller**. Ini bedanya penting: kalau pengecekan ditaruh di controller, jalur lain (job terjadwal, importer batch, controller baru) akan melewatinya tanpa sadar. Di entity, tidak ada jalur yang bisa lolos.
+
+Endpoint baru: `POST /api/payroll/{idKaryawan}/{periode}/approve` — butuh `ROLE_HR`.
+
+> **Migrasi database diperlukan.** Kolom `status` ditambahkan lewat `payroll_karyawan_status_masesas.sql`. Skripnya aman dijalankan berulang dan bersifat menambah saja — baris lama otomatis `DRAFT`.
+
+### Rate limiting
+
+Path yang dibatasi 10 permintaan/menit per IP: `/api/safe/login` dan `/api/safe/karyawan/search`. Melebihi batas dibalas **429** dengan header `Retry-After: 60`. Atur lewat `app.rate-limit.per-minute`.
+
+### Mencobanya
+
+```bash
+# AMAN: permintaan ke-11 dalam satu menit -> 429
+for i in $(seq 1 11); do
+  curl -s -o /dev/null -w "$i: %{http_code}\n" -X POST localhost:8080/api/safe/login \
+    -H 'Content-Type: application/json' \
+    -d '{"username":"hr","password":"Password123!"}'
+done
+
+# RENTAN: berapa kali pun tetap 200
+for i in $(seq 1 15); do
+  curl -s -o /dev/null -w "$i: %{http_code}\n" -X POST localhost:8080/api/vuln/login \
+    -H 'Content-Type: application/json' \
+    -d '{"username":"hr","password":"Password123!"}'
+done
+```
 
 ---
 

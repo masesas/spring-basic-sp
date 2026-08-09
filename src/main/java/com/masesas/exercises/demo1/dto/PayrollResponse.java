@@ -2,6 +2,7 @@ package com.masesas.exercises.demo1.dto;
 
 import com.masesas.exercises.demo1.entity.KomponenGaji;
 import com.masesas.exercises.demo1.entity.PayrollKaryawan;
+import com.masesas.exercises.demo1.entity.StatusPayroll;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -20,6 +21,7 @@ public record PayrollResponse(
         BigDecimal potongan,
         BigDecimal bruto,
         BigDecimal bersih,
+        StatusPayroll status,
         Instant createdDate,
         Instant updatedDate) {
 
@@ -34,6 +36,7 @@ public record PayrollResponse(
                 komponen.getPotongan(),
                 komponen.bruto(),
                 komponen.bersih(),
+                payroll.getStatus(),
                 payroll.getCreatedDate(),
                 payroll.getUpdatedDate());
     }

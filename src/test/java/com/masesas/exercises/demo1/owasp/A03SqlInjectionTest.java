@@ -1,5 +1,6 @@
 package com.masesas.exercises.demo1.owasp;
 
+import com.masesas.exercises.demo1.owasp.safe.RateLimitFilter;
 import com.masesas.exercises.demo1.security.AppUser;
 import com.masesas.exercises.demo1.security.AppUserDetailsService;
 import com.masesas.exercises.demo1.security.JwtService;
@@ -47,8 +48,12 @@ class A03SqlInjectionTest {
     @Autowired
     private AppUserDetailsService userDetailsService;
 
+    @Autowired
+    private RateLimitFilter rateLimitFilter;
+
     @BeforeEach
     void tanamData() {
+        rateLimitFilter.bersihkan();
         jdbcTemplate.update(
                 "INSERT INTO masesas.karyawan (nama, alamat, dob, status, created_date) "
                         + "VALUES (?, ?, ?, ?, now())",

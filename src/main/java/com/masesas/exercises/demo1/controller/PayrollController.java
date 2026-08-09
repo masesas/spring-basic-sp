@@ -95,6 +95,15 @@ public class PayrollController {
         return payrollService.update(idKaryawan, periode, request);
     }
 
+    /** POST /api/payroll/{idKaryawan}/{periode}/approve — kunci slip gaji. */
+    @PostMapping("/{idKaryawan}/{periode}/approve")
+    @PreAuthorize("hasRole('HR')")
+    public PayrollResponse approve(
+            @PathVariable Integer idKaryawan,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periode) {
+        return payrollService.approve(idKaryawan, periode);
+    }
+
     /** DELETE /api/payroll/{idKaryawan}/{periode} — hapus slip gaji (hard delete). */
     @DeleteMapping("/{idKaryawan}/{periode}")
     @ResponseStatus(HttpStatus.NO_CONTENT)

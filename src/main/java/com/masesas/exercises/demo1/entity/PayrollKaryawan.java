@@ -4,11 +4,14 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
+import com.masesas.exercises.demo1.exception.BusinessRuleException;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -52,6 +55,10 @@ public class PayrollKaryawan {
     @Embedded
     private KomponenGaji komponen = KomponenGaji.kosong();
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private StatusPayroll status = StatusPayroll.DRAFT;
+
     @Column(name = "created_date")
     private Instant createdDate;
 
@@ -65,14 +72,33 @@ public class PayrollKaryawan {
         payroll.id = PayrollId.untukPeriode(periode);
         payroll.karyawan = karyawan;
         payroll.komponen = komponen;
+        payroll.status = StatusPayroll.DRAFT;
         payroll.createdDate = timestamp;
         payroll.updatedDate = timestamp;
         return payroll;
     }
 
-    /** Merevisi nominal slip gaji — primary key tidak pernah ikut berubah. */
+    /**
+     * Merevisi nominal slip gaji — primary key tidak pernah ikut berubah.
+     *
+     * <p>Aturannya ditegakkan di sini, bukan di controller: slip yang sudah disetujui
+     * adalah dasar pembayaran, jadi tidak boleh berubah lewat jalur mana pun.
+     */
     public void revisi(KomponenGaji komponenBaru, Instant timestamp) {
+        if (status == StatusPayroll.APPROVED) {
+            throw new BusinessRuleException(
+                    "Slip gaji yang sudah disetujui tidak bisa direvisi");
+        }
         this.komponen = komponenBaru;
+        this.updatedDate = timestamp;
+    }
+
+    /** Menyetujui slip gaji; setelah ini nominalnya terkunci. */
+    public void setujui(Instant timestamp) {
+        if (status == StatusPayroll.APPROVED) {
+            throw new BusinessRuleException("Slip gaji sudah disetujui sebelumnya");
+        }
+        this.status = StatusPayroll.APPROVED;
         this.updatedDate = timestamp;
     }
 

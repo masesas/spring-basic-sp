@@ -3,6 +3,7 @@ package com.masesas.exercises.demo1.owasp;
 import com.masesas.exercises.demo1.security.AppUser;
 import com.masesas.exercises.demo1.security.AppUserDetailsService;
 import com.masesas.exercises.demo1.security.JwtService;
+import com.masesas.exercises.demo1.owasp.safe.RateLimitFilter;
 import com.masesas.exercises.demo1.security.LoginAttemptService;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.AfterEach;
@@ -47,10 +48,14 @@ class A07AuthTest {
     @Autowired
     private LoginAttemptService loginAttempts;
 
+    @Autowired
+    private RateLimitFilter rateLimitFilter;
+
     @BeforeEach
     @AfterEach
     void bersihkanPenghitung() {
         loginAttempts.reset(USERNAME);
+        rateLimitFilter.bersihkan();
     }
 
     @Test

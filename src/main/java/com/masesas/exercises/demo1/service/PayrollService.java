@@ -16,6 +16,8 @@ public interface PayrollService {
 
     PayrollResponse update(Integer idKaryawan, LocalDate periode, PayrollUpdateRequest request);
 
+    PayrollResponse approve(Integer idKaryawan, LocalDate periode);
+
     PayrollResponse findById(Integer idKaryawan, LocalDate periode);
 
     Page<PayrollResponse> findAll(Pageable pageable);

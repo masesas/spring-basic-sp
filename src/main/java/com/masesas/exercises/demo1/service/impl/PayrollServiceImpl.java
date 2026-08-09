@@ -74,6 +74,14 @@ public class PayrollServiceImpl implements PayrollService {
 
 
     @Override
+    @Transactional
+    public PayrollResponse approve(Integer idKaryawan, LocalDate periode) {
+        PayrollKaryawan payroll = requireExisting(idKaryawan, periode);
+        payroll.setujui(Instant.now(clock));
+        return PayrollResponse.from(payrollRepository.save(payroll));
+    }
+
+    @Override
     public PayrollResponse findById(Integer idKaryawan, LocalDate periode) {
         return PayrollResponse.from(requireExisting(idKaryawan, periode));
     }

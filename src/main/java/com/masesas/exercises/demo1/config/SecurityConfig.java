@@ -1,5 +1,6 @@
 package com.masesas.exercises.demo1.config;
 
+import com.masesas.exercises.demo1.owasp.safe.RateLimitFilter;
 import com.masesas.exercises.demo1.security.JwtAuthFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,15 +21,17 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * <p>Tanpa bean {@link SecurityFilterChain} ini, Spring Security memakai pengaturan bawaannya
  * yang meminta login basic-auth di setiap request (semua request dibalas 401).
  *
- * <p><b>Hanya untuk development/training.</b> Sebelum dipakai di lingkungan nyata, ganti
- * {@code permitAll()} dengan aturan per-endpoint dan aktifkan kembali autentikasi.
+ * <p>Sejak A01 aturannya per-endpoint: tanpa token dibalas 401, token sah tapi peran
+ * kurang dibalas 403. Yang tetap terbuka hanya endpoint login dan package demo
+ * {@code /api/vuln/**} yang memang sengaja dibiarkan rentan.
  */
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter) throws Exception {
+    SecurityFilterChain securityFilterChain(
+            HttpSecurity http, JwtAuthFilter jwtAuthFilter, RateLimitFilter rateLimitFilter) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(request -> request
@@ -42,6 +45,7 @@ public class SecurityConfig {
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }

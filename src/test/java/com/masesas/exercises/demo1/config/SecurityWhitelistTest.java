@@ -3,6 +3,7 @@ package com.masesas.exercises.demo1.config;
 import com.masesas.exercises.demo1.security.AppUser;
 import com.masesas.exercises.demo1.security.AppUserDetailsService;
 import com.masesas.exercises.demo1.security.JwtService;
+import com.masesas.exercises.demo1.owasp.safe.RateLimitFilter;
 import com.masesas.exercises.demo1.security.LoginAttemptService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -43,14 +44,20 @@ class SecurityWhitelistTest {
     @Autowired
     private LoginAttemptService loginAttempts;
 
+    @Autowired
+    private RateLimitFilter rateLimitFilter;
+
     /**
-     * Penghitung kegagalan login hidup di Redis yang dipakai bersama, bukan di memori
-     * proses test. Tanpa reset ini, kelas test lain yang sengaja mengunci akun "hr"
-     * membuat test login di sini gagal dengan 423.
+     * Dua sumber state hidup di luar proses test ini dan bocor antar kelas test:
+     * penghitung kegagalan login ada di Redis bersama, dan kuota rate limit ada di
+     * memori bean filter yang dipakai ulang seluruh kelas dalam satu context.
+     * Tanpa reset ini, kelas lain yang sengaja mengunci akun "hr" atau menghabiskan
+     * kuota login membuat test di sini gagal dengan 423 atau 429.
      */
     @BeforeEach
     void bersihkanKuncianLogin() {
         loginAttempts.reset("hr");
+        rateLimitFilter.bersihkan();
     }
 
     @Test
