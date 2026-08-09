@@ -34,7 +34,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=owasp-demo
 | [A03-XSS](#a03--injection--xss) | Injection — XSS | `POST /api/vuln/karyawan/teks` | `POST /api/safe/karyawan/teks` | ✅ **Selesai** |
 | [A04](#a04--insecure-design) | Insecure Design | `/api/vuln/login`, `PUT /api/vuln/payroll/…` | `/api/safe/login`, `PUT /api/payroll/…` | ✅ **Selesai** |
 | [A05](#a05--security-misconfiguration) | Security Misconfiguration | — *(konfigurasi)* | — *(konfigurasi)* | ✅ **Selesai** |
-| [A06](#a06--vulnerable-and-outdated-components) | Vulnerable & Outdated Components | — *(pom.xml)* | — *(pom.xml)* | ⬜ Belum |
+| [A06](#a06--vulnerable-and-outdated-components) | Vulnerable & Outdated Components | — *(pom.xml)* | — *(pom.xml)* | ✅ **Selesai** |
 | [A07](#a07--identification-and-authentication-failures) | Identification & Authentication Failures | `POST /api/vuln/login` | `POST /api/safe/login` | ✅ **Selesai** |
 | [A08](#a08--software-and-data-integrity-failures) | Software & Data Integrity Failures | `PUT /api/vuln/payroll/…/tanpa-versi` | `PUT /api/payroll/…` | ✅ **Selesai** |
 | [A09](#a09--security-logging-and-monitoring-failures) | Security Logging & Monitoring Failures | — *(aspect)* | — *(aspect)* | ✅ **Selesai** |
@@ -443,16 +443,46 @@ Dua bentuk yang diperbaiki:
 | | Lokasi |
 |---|---|
 | Sebelum & sesudah | `pom.xml` |
-| Test | build gagal bila ditemukan CVSS ≥ 7 |
+| Pendukung | `dependency-check-suppressions.xml` |
+| Test | build gagal bila ditemukan CVSS ≥ 7 atau ada versi dinamis |
 
 ```bash
-mvn verify              # pemindaian ikut berjalan
-mvn dependency-check:check   # pemindaian saja
+mvn verify                    # kedua pemeriksaan ikut berjalan
+mvn dependency-check:check    # pemindaian kerentanan saja
+mvn enforcer:enforce          # aturan dependency saja (cepat)
 ```
 
 **Cara amannya:** `dependency-check-maven` memindai seluruh dependency terhadap basis data NVD dan menggagalkan build bila ada kerentanan CVSS ≥ 7; `maven-enforcer-plugin` melarang versi dinamis dan dependency SNAPSHOT.
 
-> Pemindaian pertama mengunduh basis data NVD dan bisa memakan beberapa menit.
+### Dua plugin, dua pekerjaan berbeda
+
+| Plugin | Fase | Menjawab |
+|---|---|---|
+| `dependency-check-maven` | `verify` | "Apakah ada dependency dengan lubang yang sudah diketahui publik?" |
+| `maven-enforcer-plugin` | `validate` | "Apakah build ini bisa diulang dan menghasilkan isi yang sama?" |
+
+Yang kedua terdengar bukan urusan keamanan, tapi sebenarnya prasyarat yang pertama. Versi dinamis (`1.2.+`, `LATEST`, `RELEASE`) membuat isi build berubah tanpa ada perubahan kode — **hasil pemindaian hari ini tidak berlaku untuk build besok**. Memindai tanpa mengunci versi memberi rasa aman yang keliru.
+
+Enforcer ditaruh di fase `validate` supaya gagal dalam hitungan detik, bukan setelah pemindaian panjang selesai.
+
+### Ambang CVSS ≥ 7
+
+7.0 adalah batas bawah severity **HIGH** menurut CVSS v3. Diatur lewat `dependency-check.failOnCVSS` di `pom.xml`, jadi bisa diperketat ke 4 (MEDIUM) tanpa menyentuh konfigurasi plugin.
+
+### API key NVD
+
+Tanpa API key, pemindaian pertama sangat lambat karena NVD membatasi laju permintaan anonim. Key-nya gratis:
+
+```bash
+# minta di https://nvd.nist.gov/developers/request-an-api-key
+mvn verify -Dnvd.api.key=ISI_API_KEY_ANDA
+```
+
+Basis datanya di-cache setelah unduhan pertama, jadi pemindaian berikutnya jauh lebih cepat.
+
+### Menekan temuan
+
+`dependency-check-suppressions.xml` menampung temuan yang sengaja diabaikan — misalnya false positive, atau CVE yang tidak menyentuh jalur kode yang kita pakai. Setiap entri **wajib** memuat alasan tertulis dan tanggal peninjauan ulang. Menekan temuan tanpa alasan sama saja mematikan A06 diam-diam, hanya dengan cara yang lebih sulit dilihat.
 
 ---
 

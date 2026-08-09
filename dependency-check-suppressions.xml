@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Daftar temuan dependency-check yang sengaja diabaikan.
+
+    Setiap entri WAJIB memuat:
+      - <notes> alasannya, dan siapa yang memutuskan
+      - tanggal peninjauan ulang
+
+    Menekan temuan tanpa alasan tertulis sama saja mematikan A06 diam-diam.
+    Berkas ini kosong sampai ada temuan yang benar-benar perlu ditinjau.
+-->
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+</suppressions>

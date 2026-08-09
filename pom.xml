@@ -30,6 +30,12 @@
         <java.version>21</java.version>
         <jjwt.version>0.12.6</jjwt.version>
         <bucket4j.version>8.14.0</bucket4j.version>
+        <dependency-check.version>12.1.0</dependency-check.version>
+        <enforcer.version>3.5.0</enforcer.version>
+        <!-- Ambang kegagalan build. 7.0 = batas bawah severity HIGH menurut CVSS v3. -->
+        <dependency-check.failOnCVSS>7</dependency-check.failOnCVSS>
+        <!-- Kosong = tanpa API key, pemindaian jauh lebih lambat. Timpa lewat -Dnvd.api.key=... -->
+        <nvd.api.key></nvd.api.key>
     </properties>
     <dependencies>
         <dependency>
@@ -113,6 +119,84 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+
+            <!--
+                OWASP A06 — Vulnerable and Outdated Components.
+
+                Memindai seluruh dependency terhadap basis data NVD dan menggagalkan
+                build bila ada kerentanan dengan skor CVSS >= 7 (severity HIGH).
+
+                Terikat ke fase verify, jadi ikut berjalan pada `mvn verify` dan
+                `mvn install`, tapi tidak memperlambat `mvn test` sehari-hari.
+
+                Pemindaian pertama mengunduh basis data NVD dan bisa memakan
+                waktu lama. Jauh lebih cepat dengan API key gratis dari
+                https://nvd.nist.gov/developers/request-an-api-key :
+
+                    mvn verify -Dnvd.api.key=ISI_API_KEY_ANDA
+            -->
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>${dependency-check.version}</version>
+                <configuration>
+                    <failBuildOnCVSS>${dependency-check.failOnCVSS}</failBuildOnCVSS>
+                    <nvdApiKey>${nvd.api.key}</nvdApiKey>
+                    <formats>
+                        <format>HTML</format>
+                        <format>JSON</format>
+                    </formats>
+                    <!-- Analyzer untuk ekosistem lain hanya memperlambat, tidak dipakai di sini. -->
+                    <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+                    <nuspecAnalyzerEnabled>false</nuspecAnalyzerEnabled>
+                    <nodeAnalyzerEnabled>false</nodeAnalyzerEnabled>
+                    <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled>
+                    <suppressionFiles>
+                        <suppressionFile>dependency-check-suppressions.xml</suppressionFile>
+                    </suppressionFiles>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>owasp-a06-scan</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+                Menjaga agar build bisa diulang. Versi dinamis (1.2.+, LATEST, RELEASE)
+                dan dependency SNAPSHOT membuat isi build berubah tanpa ada perubahan
+                kode — hasil pemindaian kerentanan pun jadi tidak ada artinya.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>${enforcer.version}</version>
+                <executions>
+                    <execution>
+                        <id>owasp-a06-aturan-dependency</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <banDynamicVersions/>
+                                <requireReleaseDeps>
+                                    <message>Dependency SNAPSHOT tidak boleh dipakai.</message>
+                                </requireReleaseDeps>
+                                <requireJavaVersion>
+                                    <version>[21,)</version>
+                                </requireJavaVersion>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
