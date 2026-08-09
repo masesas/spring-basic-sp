@@ -5,6 +5,7 @@ import com.masesas.exercises.demo1.security.AppUserDetailsService;
 import com.masesas.exercises.demo1.security.JwtService;
 import com.masesas.exercises.demo1.security.LoginAttemptService;
 import io.jsonwebtoken.Claims;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,7 @@ class A07AuthTest {
     private LoginAttemptService loginAttempts;
 
     @BeforeEach
+    @AfterEach
     void bersihkanPenghitung() {
         loginAttempts.reset(USERNAME);
     }

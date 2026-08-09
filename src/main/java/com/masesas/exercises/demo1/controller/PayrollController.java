@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,6 +43,7 @@ public class PayrollController {
     /** POST /api/payroll — buat slip gaji baru. */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasRole('HR')")
     public PayrollResponse create(@RequestBody PayrollRequest request) {
         return payrollService.create(request);
     }
@@ -84,6 +86,7 @@ public class PayrollController {
 
     /** PUT /api/payroll/{idKaryawan}/{periode} — revisi nominal slip gaji. */
     @PutMapping("/{idKaryawan}/{periode}")
+    @PreAuthorize("hasRole('HR')")
     public PayrollResponse update(
             @PathVariable Integer idKaryawan,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periode,
@@ -94,6 +97,7 @@ public class PayrollController {
     /** DELETE /api/payroll/{idKaryawan}/{periode} — hapus slip gaji (hard delete). */
     @DeleteMapping("/{idKaryawan}/{periode}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('HR')")
     public void delete(
             @PathVariable Integer idKaryawan,
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periode) {

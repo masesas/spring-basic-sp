@@ -28,7 +28,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=owasp-demo
 
 | # | Kategori | Endpoint rentan | Endpoint aman | Status |
 |---|---|---|---|---|
-| [A01](#a01--broken-access-control) | Broken Access Control | `/api/vuln/payroll/{id}` | `/api/safe/payroll/{id}` | ⬜ Belum |
+| [A01](#a01--broken-access-control) | Broken Access Control | `/api/vuln/payroll/{id}` | `/api/safe/payroll/{id}` | ✅ **Selesai** |
 | [A02](#a02--cryptographic-failures) | Cryptographic Failures | `/api/vuln/karyawan/{id}/detail` | `/api/safe/karyawan/{id}/detail` | ⬜ Belum |
 | [A03-SQL](#a03--injection--sql) | Injection — SQL | `/api/vuln/karyawan/search` | `/api/safe/karyawan/search` | ⬜ Belum |
 | [A03-XSS](#a03--injection--xss) | Injection — XSS | `POST /api/vuln/karyawan` | `POST /api/safe/karyawan` | ⬜ Belum |
@@ -59,10 +59,49 @@ Dua bentuk yang dibuat di sini:
 |---|---|
 | Rentan | `owasp/vuln/A01VulnController.java` |
 | Aman | `owasp/safe/A01SafeController.java` |
-| Pendukung | `config/SecurityConfig.java` |
-| Test | `owasp/A01AccessControlTest.java` |
+| Pendukung | `config/SecurityConfig.java`, `controller/PayrollController.java`, `exception/GlobalExceptionHandler.java` |
+| Test | `owasp/A01AccessControlTest.java` — 7 test, semua lulus |
 
-**Cara amannya:** aturan per-endpoint di `SecurityConfig` ditambah `@PreAuthorize` di tiap method. Untuk IDOR, dicek bahwa ID yang diminta memang milik si pengguna.
+**Cara amannya:** aturan per-endpoint di `SecurityConfig` ditambah `@PreAuthorize` di tiap method. Untuk IDOR, dicek bahwa ID yang diminta memang milik si pengguna:
+
+```java
+@PreAuthorize("hasRole('HR') or #idKaryawan == authentication.principal.idKaryawan")
+```
+
+`authentication.principal` di sini adalah `AppUser`, yang membawa `idKaryawan`. Itulah alasan A07 harus selesai lebih dulu — tanpa principal, ekspresi ini tidak punya apa pun untuk dibandingkan.
+
+### Aturan otorisasi yang berlaku sekarang
+
+| Path | Aturan |
+|---|---|
+| `/api/safe/login` | terbuka |
+| `/api/vuln/**` | terbuka — memang begitu maunya |
+| `DELETE /api/karyawan/**`, `/api/karyawan2/**` | `ROLE_ADMIN` |
+| `POST`/`PUT`/`DELETE` `/api/payroll/**` | `ROLE_HR` |
+| sisanya | wajib token |
+
+Tanpa token dibalas **401**; token sah tapi peran kurang dibalas **403**.
+
+### Mencobanya
+
+```bash
+TOKEN=$(curl -s -X POST localhost:8080/api/safe/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"karyawan","password":"Password123!"}' | jq -r .token)
+
+# slip gaji sendiri (idKaryawan=1) -> 200
+curl -s -o /dev/null -w '%{http_code}\n' localhost:8080/api/safe/payroll/1 \
+  -H "Authorization: Bearer $TOKEN"
+
+# slip gaji orang lain -> 403
+curl -s -o /dev/null -w '%{http_code}\n' localhost:8080/api/safe/payroll/2 \
+  -H "Authorization: Bearer $TOKEN"
+
+# versi rentan: tanpa token pun terbaca -> 200
+curl -s -o /dev/null -w '%{http_code}\n' localhost:8080/api/vuln/payroll/2
+```
+
+> **Perubahan yang memutus kompatibilitas:** sejak A01, seluruh endpoint lama (`/api/karyawan`, `/api/payroll`, `/api/sp/...`) menuntut header `Authorization: Bearer <token>`. Sebelumnya semuanya terbuka.
 
 ---
 
