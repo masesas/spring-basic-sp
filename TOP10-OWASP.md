@@ -38,7 +38,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=owasp-demo
 | [A07](#a07--identification-and-authentication-failures) | Identification & Authentication Failures | `POST /api/vuln/login` | `POST /api/safe/login` | ✅ **Selesai** |
 | [A08](#a08--software-and-data-integrity-failures) | Software & Data Integrity Failures | `PUT /api/vuln/payroll/…/tanpa-versi` | `PUT /api/payroll/…` | ✅ **Selesai** |
 | [A09](#a09--security-logging-and-monitoring-failures) | Security Logging & Monitoring Failures | — *(aspect)* | — *(aspect)* | ✅ **Selesai** |
-| [A10](#a10--server-side-request-forgery-ssrf) | Server-Side Request Forgery | `POST /api/vuln/karyawan/{id}/foto` | `POST /api/safe/karyawan/{id}/foto` | ⬜ Belum |
+| [A10](#a10--server-side-request-forgery-ssrf) | Server-Side Request Forgery | `POST /api/vuln/karyawan/{id}/foto` | `POST /api/safe/karyawan/{id}/foto` | ✅ **Selesai** |
 
 Tiga kategori (A05, A06, A09) tidak berbentuk endpoint — bedanya ada di file konfigurasi, bukan di URL.
 
@@ -653,9 +653,55 @@ Dua bentuk yang dibuat di sini:
 | Rentan | `owasp/vuln/A10VulnController.java` |
 | Aman | `owasp/safe/A10SafeController.java` |
 | Pendukung | `owasp/safe/UrlGuard.java`, `config/ClientConfig.java` |
-| Test | `owasp/A10SsrfTest.java` |
+| Test | `owasp/A10SsrfTest.java` — 6 test, semua lulus |
 
 **Cara amannya:** hanya skema `https` yang diterima, nama host di-resolve lebih dulu lalu IP privat/loopback/link-local ditolak, redirect tidak diikuti, timeout 3 detik, ukuran dibatasi 2 MB, dan `Content-Type` wajib `image/*`.
+
+### Kenapa host harus di-resolve, bukan disaring sebagai teks
+
+Menolak berdasarkan tulisan alamat tidak ada gunanya. Ketiganya bermuara ke 127.0.0.1 tanpa pernah menuliskannya:
+
+| Bentuk | Hasil resolve |
+|---|---|
+| `https://localhost/a` | 127.0.0.1 |
+| `https://2130706433/a` | 127.0.0.1 (bentuk desimal) |
+| `https://localtest.me/a` | 127.0.0.1 (domain publik yang sengaja menunjuk ke sana) |
+
+Karena itu `UrlGuard` memanggil `InetAddress.getAllByName()` lalu memeriksa **seluruh** hasilnya — satu nama host bisa menunjuk ke beberapa alamat sekaligus, dan memeriksa yang pertama saja meninggalkan celah.
+
+Rentang yang ditolak: loopback, site-local (`10.x`, `192.168.x`, `172.16–31.x`), link-local (termasuk `169.254.169.254` milik metadata cloud), any-local, multicast, dan unique-local IPv6 (`fc00::/7` — padanan IPv6 untuk `10.x` yang tidak tercakup `isSiteLocalAddress`).
+
+### Kenapa redirect tidak boleh diikuti
+
+Tanpa ini, seluruh pemeriksaan di atas bisa dilewati dalam satu langkah: penyerang memberi alamat publik yang sah, server memeriksanya dan lolos, lalu alamat itu membalas `302` ke `http://127.0.0.1:6379`. Yang diperiksa hanya alamat pertama.
+
+`restTemplateAman` memakai `setInstanceFollowRedirects(false)`, dan balasan 3xx ditolak dengan pesan yang jelas.
+
+### Mencobanya
+
+```bash
+# RENTAN: server dipaksa menembak Redis internal, isinya ikut terbawa keluar
+curl -s -X POST localhost:8080/api/vuln/karyawan/1/foto \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"http://127.0.0.1:6379"}'
+
+# RENTAN: endpoint metadata cloud
+curl -s -X POST localhost:8080/api/vuln/karyawan/1/foto \
+  -H 'Content-Type: application/json' \
+  -d '{"url":"http://169.254.169.254/latest/meta-data/"}'
+
+# AMAN: keduanya dibalas 400 tanpa satu pun panggilan jaringan
+curl -s -X POST localhost:8080/api/safe/karyawan/1/foto \
+  -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+  -d '{"url":"http://127.0.0.1:6379"}'
+```
+
+### Batasan yang diketahui
+
+| Batasan | Keterangan |
+|---|---|
+| **DNS rebinding** | Ada jeda antara saat host di-resolve untuk diperiksa dan saat koneksi benar-benar dibuat. Host jahat bisa menjawab alamat publik saat diperiksa lalu alamat internal saat dihubungi. Penutupnya adalah koneksi ke IP yang sudah diverifikasi, bukan ke nama host — di luar cakupan v1 |
+| **Jalur sukses belum diuji end-to-end** | Test hanya menjalankan server di 127.0.0.1, yang justru selalu ditolak `UrlGuard`. Menguji pengambilan gambar yang benar-benar berhasil menuntut panggilan ke internet dari dalam test, dan itu membuat test rapuh. Aturan hostnya diuji terpisah sebagai unit test |
 
 ---
 
