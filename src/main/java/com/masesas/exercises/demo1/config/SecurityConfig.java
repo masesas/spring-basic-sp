@@ -10,13 +10,16 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+import java.util.Map;
+
 /**
- * Konfigurasi keamanan tahap awal: SEMUA endpoint dibuka tanpa login.
+ * Konfigurasi keamanan aplikasi.
  *
  * <p>Tanpa bean {@link SecurityFilterChain} ini, Spring Security memakai pengaturan bawaannya
  * yang meminta login basic-auth di setiap request (semua request dibalas 401).
@@ -50,8 +53,15 @@ public class SecurityConfig {
                 .build();
     }
 
+    /**
+     * {@link DelegatingPasswordEncoder} menyimpan pengenal algoritma sebagai awalan
+     * pada hash-nya ({@code {bcrypt}$2a$12$...}). Tanpa itu, mengganti algoritma di
+     * kemudian hari berarti seluruh password lama tidak bisa lagi diverifikasi.
+     */
     @Bean
     PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        String baku = "bcrypt";
+        Map<String, PasswordEncoder> encoders = Map.of(baku, new BCryptPasswordEncoder(12));
+        return new DelegatingPasswordEncoder(baku, encoders);
     }
 }

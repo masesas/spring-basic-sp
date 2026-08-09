@@ -1,6 +1,8 @@
 package com.masesas.exercises.demo1.entity;
 
+import com.masesas.exercises.demo1.owasp.safe.CryptoConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -21,9 +23,11 @@ public class DetailKaryawan {
     @Column(name = "id", nullable = false)
     private Integer id;
 
+    @Convert(converter = CryptoConverter.class)
     @Column(name = "nik", nullable = false)
     private String nik;
 
+    @Convert(converter = CryptoConverter.class)
     @Column(name = "npwp", nullable = false)
     private String npwp;
 

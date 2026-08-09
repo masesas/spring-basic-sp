@@ -29,7 +29,7 @@ mvn spring-boot:run -Dspring-boot.run.profiles=owasp-demo
 | # | Kategori | Endpoint rentan | Endpoint aman | Status |
 |---|---|---|---|---|
 | [A01](#a01--broken-access-control) | Broken Access Control | `/api/vuln/payroll/{id}` | `/api/safe/payroll/{id}` | ✅ **Selesai** |
-| [A02](#a02--cryptographic-failures) | Cryptographic Failures | `/api/vuln/karyawan/{id}/detail` | `/api/safe/karyawan/{id}/detail` | ⬜ Belum |
+| [A02](#a02--cryptographic-failures) | Cryptographic Failures | `/api/vuln/karyawan/{id}/detail` | `/api/safe/karyawan/{id}/detail` | ✅ **Selesai** |
 | [A03-SQL](#a03--injection--sql) | Injection — SQL | `/api/vuln/karyawan/search` | `/api/safe/karyawan/search` | ✅ **Selesai** |
 | [A03-XSS](#a03--injection--xss) | Injection — XSS | `POST /api/vuln/karyawan/teks` | `POST /api/safe/karyawan/teks` | ✅ **Selesai** |
 | [A04](#a04--insecure-design) | Insecure Design | `/api/vuln/login`, `PUT /api/vuln/payroll/…` | `/api/safe/login`, `PUT /api/payroll/…` | ✅ **Selesai** |
@@ -122,10 +122,60 @@ Dua bentuk yang dibuat di sini:
 |---|---|
 | Rentan | `owasp/vuln/A02VulnController.java` |
 | Aman | `owasp/safe/A02SafeController.java` |
-| Pendukung | `owasp/safe/CryptoConverter.java`, `entity/DetailKaryawan.java` |
-| Test | `owasp/A02CryptoTest.java` |
+| Pendukung | `owasp/safe/CryptoConverter.java`, `owasp/safe/EnkripsiDetailRunner.java`, `entity/DetailKaryawan.java`, `dto/DetailKaryawanResponse.java`, `config/SecurityConfig.java` |
+| Migrasi | `detail_karyawan_enkripsi_masesas.sql` |
+| Test | `owasp/A02CryptoTest.java` — 8 test, semua lulus |
 
-**Cara amannya:** NIK dan NPWP dienkripsi AES-GCM otomatis saat masuk database (lewat `AttributeConverter`), password pakai bcrypt, dan response hanya menampilkan versi tersamar `************1234`.
+**Cara amannya:** NIK dan NPWP dienkripsi AES-GCM otomatis saat masuk database (lewat `AttributeConverter`), password pakai bcrypt, dan response hanya menampilkan versi tersamar `************0001`.
+
+### Enkripsi at-rest lewat AttributeConverter
+
+`@Convert(converter = CryptoConverter.class)` pada field `nik` dan `npwp` membuat enkripsi terjadi **otomatis di lapisan JPA**. Tidak ada satu pun kode service atau controller yang perlu tahu soal enkripsi — mereka membaca dan menulis String biasa. Ini penting: kalau enkripsi dipanggil manual, satu jalur yang lupa memanggilnya langsung membocorkan data.
+
+Format tersimpan: `enc:v1:` + Base64(IV ‖ ciphertext ‖ tag).
+
+| Bagian | Alasan |
+|---|---|
+| Penanda `enc:v1:` | Membedakan data terenkripsi dari teks biasa. Baris lama tetap terbaca selama masa transisi, dan versinya bisa dinaikkan kalau algoritma berganti |
+| IV 12 byte acak per nilai | Dua orang ber-NIK sama menghasilkan ciphertext berbeda. Tanpa ini, pola berulang bisa dibaca tanpa perlu memecahkan kunci |
+| GCM tag 128 bit | Mendeteksi kalau ciphertext diubah orang. AES tanpa mode berautentikasi tidak tahu bedanya |
+
+### Masking: aman secara bawaan
+
+`DetailKaryawanResponse.from()` **selalu** menyamarkan. Untuk menampilkan nomor utuh harus sengaja memanggil `fromLengkap()`, yang hanya dipakai controller demo. Arah defaultnya dibalik: lupa berarti aman, bukan lupa berarti bocor.
+
+### Password
+
+`DelegatingPasswordEncoder` dengan bcrypt strength 12 menggantikan `BCryptPasswordEncoder` polos. Hash-nya sekarang berawalan algoritma: `{bcrypt}$2a$12$...`. Tanpa awalan itu, mengganti algoritma di kemudian hari berarti seluruh password lama tidak bisa lagi diverifikasi.
+
+Bandingkan dengan MD5 di endpoint rentan — `password123` **selalu** menghasilkan `482c811da5d5b4bc6d497ffa98491e38`, nilai yang bisa dicari di tabel pelangi mana pun dalam hitungan detik.
+
+### Migrasi
+
+Dua langkah, keduanya aman diulang:
+
+```bash
+# 1. perlebar kolom - varchar(20) tidak muat ciphertext
+psql ... -f detail_karyawan_enkripsi_masesas.sql
+
+# 2. enkripsi baris yang masih teks biasa
+mvn spring-boot:run -Dspring-boot.run.profiles=migrasi-enkripsi
+```
+
+> ⚠️ **Kunci hilang berarti data hilang.** `app.crypto.key` adalah satu-satunya cara membaca kembali NIK dan NPWP yang sudah dienkripsi. Kunci ini pindah ke `.env` pada [A05](#a05--security-misconfiguration) dengan **nilai yang sama persis** — mengganti nilainya membuat seluruh data terenkripsi tidak terbaca.
+
+### Mencobanya
+
+```bash
+# RENTAN: NIK dan NPWP utuh
+curl -s localhost:8080/api/vuln/karyawan/1/detail
+
+# AMAN: hanya 4 digit terakhir
+curl -s localhost:8080/api/safe/karyawan/1/detail -H "Authorization: Bearer $TOKEN"
+
+# RENTAN: MD5 selalu sama, bisa dicari di tabel pelangi
+curl -s 'localhost:8080/api/vuln/hash?password=password123'
+```
 
 ---
 
