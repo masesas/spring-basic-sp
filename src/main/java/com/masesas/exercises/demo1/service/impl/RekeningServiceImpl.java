@@ -10,6 +10,7 @@ import com.masesas.exercises.demo1.repository.KaryawanRepository;
 import com.masesas.exercises.demo1.repository.RekeningRepository;
 import com.masesas.exercises.demo1.service.RekeningService;
 import com.masesas.exercises.demo1.service.support.Validators;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,7 @@ import java.util.List;
 
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class RekeningServiceImpl implements RekeningService {
 
     private static final String RESOURCE = "Rekening";
@@ -29,23 +31,14 @@ public class RekeningServiceImpl implements RekeningService {
     private final KaryawanRepository karyawanRepository;
     private final Clock clock;
 
-    public RekeningServiceImpl(
-            RekeningRepository rekeningRepository,
-            KaryawanRepository karyawanRepository,
-            Clock clock) {
-        this.rekeningRepository = rekeningRepository;
-        this.karyawanRepository = karyawanRepository;
-        this.clock = clock;
-    }
-
     @Override
     @Transactional
     public RekeningResponse create(RekeningRequest request) {
         Validators.requireNotNull(request, "data rekening");
-        String jenis = Validators.requireText(request.jenis(), "jenis");
-        String nama = Validators.requireText(request.nama(), "nama pemilik rekening");
-        String nomor = Validators.requireText(request.rekening(), "nomor rekening");
-        Karyawan karyawan = requireActiveKaryawan(request.idKaryawan());
+        String jenis = Validators.requireText(request.getJenis(), "jenis");
+        String nama = Validators.requireText(request.getNama(), "nama pemilik rekening");
+        String nomor = Validators.requireText(request.getRekening(), "nomor rekening");
+        Karyawan karyawan = requireActiveKaryawan(request.getIdKaryawan());
 
         if (rekeningRepository.existsByJenisIgnoreCaseAndRekeningAndDeletedDateIsNull(jenis, nomor)) {
             throw new DuplicateResourceException("Nomor rekening sudah terdaftar untuk jenis " + jenis);
@@ -68,10 +61,10 @@ public class RekeningServiceImpl implements RekeningService {
     public RekeningResponse update(Integer id, RekeningRequest request) {
         Validators.requireNotNull(request, "data rekening");
         Rekening rekening = requireActive(id);
-        String jenis = Validators.requireText(request.jenis(), "jenis");
-        String nama = Validators.requireText(request.nama(), "nama pemilik rekening");
-        String nomor = Validators.requireText(request.rekening(), "nomor rekening");
-        Karyawan karyawan = requireActiveKaryawan(request.idKaryawan());
+        String jenis = Validators.requireText(request.getJenis(), "jenis");
+        String nama = Validators.requireText(request.getNama(), "nama pemilik rekening");
+        String nomor = Validators.requireText(request.getRekening(), "nomor rekening");
+        Karyawan karyawan = requireActiveKaryawan(request.getIdKaryawan());
 
         if (rekeningRepository.existsByJenisIgnoreCaseAndRekeningAndDeletedDateIsNullAndIdNot(jenis, nomor, id)) {
             throw new DuplicateResourceException("Nomor rekening sudah terdaftar untuk jenis " + jenis);

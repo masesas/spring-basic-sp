@@ -1,15 +1,22 @@
 package com.masesas.exercises.demo1.dto;
 
 import com.masesas.exercises.demo1.entity.Training;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
-public record TrainingResponse(
-        Integer id,
-        String tema,
-        String pengajar,
-        Instant createdDate,
-        Instant updatedDate) {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TrainingResponse {
+
+    private Integer id;
+    private String tema;
+    private String pengajar;
+    private Instant createdDate;
+    private Instant updatedDate;
 
     public static TrainingResponse from(Training training) {
         return new TrainingResponse(

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
@@ -32,9 +33,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("owasp-demo")
 class A07AuthTest {
 
-    private static final String USERNAME = "hr";
-    private static final String PASSWORD = "Password123!";
+    private static final String USERNAME = "hr@masesas.test";
     private static final String PASSWORD_SALAH = "salah";
+
+    @Value("${app.security.password}")
+    private String password;
 
     @Autowired
     private MockMvc mockMvc;
@@ -61,7 +64,7 @@ class A07AuthTest {
     @Test
     @DisplayName("RENTAN: token dari /api/vuln/login tidak punya masa berlaku")
     void vuln_tokenTanpaMasaBerlaku() throws Exception {
-        Claims claims = jwtService.parse(login("/api/vuln/login", PASSWORD));
+        Claims claims = jwtService.parse(login("/api/vuln/login", password));
 
         assertThat(claims.getExpiration()).isNull();
     }
@@ -69,7 +72,7 @@ class A07AuthTest {
     @Test
     @DisplayName("AMAN: token dari /api/safe/login kedaluwarsa dalam 15 menit")
     void safe_tokenPunyaMasaBerlaku() throws Exception {
-        Claims claims = jwtService.parse(login("/api/safe/login", PASSWORD));
+        Claims claims = jwtService.parse(login("/api/safe/login", password));
 
         assertThat(claims.getExpiration()).isNotNull();
         long menit = ChronoUnit.MINUTES.between(
@@ -96,7 +99,7 @@ class A07AuthTest {
                     .andExpect(status().isUnauthorized());
         }
 
-        mockMvc.perform(loginRequest("/api/vuln/login", PASSWORD))
+        mockMvc.perform(loginRequest("/api/vuln/login", password))
                 .andExpect(status().isOk());
     }
 
@@ -108,7 +111,7 @@ class A07AuthTest {
                     .andExpect(status().isUnauthorized());
         }
 
-        mockMvc.perform(loginRequest("/api/safe/login", PASSWORD))
+        mockMvc.perform(loginRequest("/api/safe/login", password))
                 .andExpect(status().isLocked());
     }
 

@@ -1,21 +1,27 @@
 package com.masesas.exercises.demo1.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDate;
 
-/** Result set 1 dari sp_proses_karyawan: karyawan + detail karyawan. */
-public record KaryawanLengkap(
-        Integer id,
-        String nama,
-        String alamat,
-        String status,
-        LocalDate dob,
-        Integer umur,
-        String kategoriUmur,
-        String nik,
-        String npwp,
-        Integer jumlahRekening) {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class KaryawanLengkap {
 
-    /** Urutan kolom sama dengan urutan di cursor p_karyawan. */
+    private Integer id;
+    private String nama;
+    private String alamat;
+    private String status;
+    private LocalDate dob;
+    private Integer umur;
+    private String kategoriUmur;
+    private String nik;
+    private String npwp;
+    private Integer jumlahRekening;
+
     public static KaryawanLengkap fromRow(Object[] row) {
         return new KaryawanLengkap(
                 ((Number) row[0]).intValue(),

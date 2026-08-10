@@ -20,8 +20,8 @@ public class JwtService {
     private final Duration ttl;
 
     public JwtService(
-            @Value("${app.jwt.secret}") String secret,
-            @Value("${app.jwt.ttl-minutes}") long ttlMinutes) {
+            @Value("${app.security.jwt-secret}") String secret,
+            @Value("${app.security.jwt-ttl-minutes}") long ttlMinutes) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.ttl = Duration.ofMinutes(ttlMinutes);
     }
@@ -47,9 +47,9 @@ public class JwtService {
     private JwtBuilder builder(AppUser user, Instant issuedAt) {
         return Jwts.builder()
                 .subject(user.getUsername())
-                .claim("roles", user.roles())
-                .claim("idKaryawan", user.idKaryawan())
-                .claim("tipe", user.tipe())
+                .claim("roles", user.getRoles())
+                .claim("idKaryawan", user.getIdKaryawan())
+                .claim("tipe", user.getTipe())
                 .issuedAt(Date.from(issuedAt))
                 .signWith(key);
     }

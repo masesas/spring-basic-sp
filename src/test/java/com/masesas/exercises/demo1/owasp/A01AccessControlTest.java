@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("owasp-demo")
 class A01AccessControlTest {
 
-    private static final int ID_KARYAWAN_SENDIRI = 1;
+    private static final int ID_KARYAWAN_SENDIRI = 8;
     private static final int ID_KARYAWAN_ORANG_LAIN = 2;
 
     @Autowired
@@ -46,7 +46,7 @@ class A01AccessControlTest {
     @DisplayName("AMAN: karyawan membaca slip gaji orang lain dibalas 403")
     void safe_idorDitolak() throws Exception {
         mockMvc.perform(get("/api/safe/payroll/" + ID_KARYAWAN_ORANG_LAIN)
-                        .header(HttpHeaders.AUTHORIZATION, bearer("karyawan")))
+                        .header(HttpHeaders.AUTHORIZATION, bearer("karyawan@masesas.test")))
                 .andExpect(status().isForbidden());
     }
 
@@ -54,7 +54,7 @@ class A01AccessControlTest {
     @DisplayName("AMAN: karyawan tetap boleh membaca slip gajinya sendiri")
     void safe_slipSendiriBolehDibaca() throws Exception {
         mockMvc.perform(get("/api/safe/payroll/" + ID_KARYAWAN_SENDIRI)
-                        .header(HttpHeaders.AUTHORIZATION, bearer("karyawan")))
+                        .header(HttpHeaders.AUTHORIZATION, bearer("karyawan@masesas.test")))
                 .andExpect(status().isOk());
     }
 
@@ -62,7 +62,7 @@ class A01AccessControlTest {
     @DisplayName("AMAN: HR boleh membaca slip gaji karyawan mana pun")
     void safe_hrBolehMembacaSemua() throws Exception {
         mockMvc.perform(get("/api/safe/payroll/" + ID_KARYAWAN_ORANG_LAIN)
-                        .header(HttpHeaders.AUTHORIZATION, bearer("hr")))
+                        .header(HttpHeaders.AUTHORIZATION, bearer("hr@masesas.test")))
                 .andExpect(status().isOk());
     }
 
@@ -77,7 +77,7 @@ class A01AccessControlTest {
     @DisplayName("AMAN: karyawan biasa dilarang menghapus, dibalas 403")
     void safe_hapusButuhPeranAdmin() throws Exception {
         mockMvc.perform(delete("/api/safe/karyawan/999999")
-                        .header(HttpHeaders.AUTHORIZATION, bearer("karyawan")))
+                        .header(HttpHeaders.AUTHORIZATION, bearer("karyawan@masesas.test")))
                 .andExpect(status().isForbidden());
     }
 
@@ -88,7 +88,7 @@ class A01AccessControlTest {
                         .post("/api/payroll")
                         .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                         .content("{\"idKaryawan\":1,\"periode\":\"2026-08-01\",\"gajiPokok\":1000}")
-                        .header(HttpHeaders.AUTHORIZATION, bearer("karyawan")))
+                        .header(HttpHeaders.AUTHORIZATION, bearer("karyawan@masesas.test")))
                 .andExpect(status().isForbidden());
     }
 

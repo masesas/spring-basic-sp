@@ -1,4 +1,14 @@
 package com.masesas.exercises.demo1.dto;
 
-public record TrainingRequest(String tema, String pengajar) {
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TrainingRequest {
+
+    private String tema;
+    private String pengajar;
 }

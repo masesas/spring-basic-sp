@@ -1,19 +1,26 @@
 package com.masesas.exercises.demo1.dto;
 
 import com.masesas.exercises.demo1.entity.Karyawan;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.time.LocalDate;
 
-public record KaryawanResponse(
-        Integer id,
-        String nama,
-        String alamat,
-        LocalDate dob,
-        String status,
-        DetailKaryawanResponse detail,
-        Instant createdDate,
-        Instant updatedDate) {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class KaryawanResponse {
+
+    private Integer id;
+    private String nama;
+    private String alamat;
+    private LocalDate dob;
+    private String status;
+    private DetailKaryawanResponse detail;
+    private Instant createdDate;
+    private Instant updatedDate;
 
     public static KaryawanResponse from(Karyawan karyawan) {
         return new KaryawanResponse(

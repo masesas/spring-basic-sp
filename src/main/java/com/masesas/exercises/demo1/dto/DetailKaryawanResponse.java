@@ -1,17 +1,23 @@
 package com.masesas.exercises.demo1.dto;
 
 import com.masesas.exercises.demo1.entity.DetailKaryawan;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
-public record DetailKaryawanResponse(
-        Integer id,
-        String nik,
-        String npwp,
-        Instant createdDate,
-        Instant updatedDate) {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class DetailKaryawanResponse {
 
-    /** Bentuk baku: nomor identitas selalu tersamar. Aman secara bawaan. */
+    private Integer id;
+    private String nik;
+    private String npwp;
+    private Instant createdDate;
+    private Instant updatedDate;
+
     public static DetailKaryawanResponse from(DetailKaryawan detail) {
         return new DetailKaryawanResponse(
                 detail.getId(),
@@ -21,7 +27,6 @@ public record DetailKaryawanResponse(
                 detail.getUpdatedDate());
     }
 
-    /** Nomor identitas utuh. Hanya dipakai controller demo yang sengaja dibuat rentan. */
     public static DetailKaryawanResponse fromLengkap(DetailKaryawan detail) {
         return new DetailKaryawanResponse(
                 detail.getId(),

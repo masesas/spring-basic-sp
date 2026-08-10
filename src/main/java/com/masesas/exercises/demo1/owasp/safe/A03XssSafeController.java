@@ -26,8 +26,8 @@ public class A03XssSafeController {
     @PostMapping("/teks")
     @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> simpan(@RequestBody KaryawanTeksRequest request) {
-        String nama = InputSanitizer.requireBebasMarkup(request.nama(), "nama");
-        String alamat = InputSanitizer.requireBebasMarkup(request.alamat(), "alamat");
+        String nama = InputSanitizer.requireBebasMarkup(request.getNama(), "nama");
+        String alamat = InputSanitizer.requireBebasMarkup(request.getAlamat(), "alamat");
 
         Integer id = jdbcTemplate.queryForObject(
                 "INSERT INTO masesas.karyawan (nama, alamat, dob, status, created_date) "

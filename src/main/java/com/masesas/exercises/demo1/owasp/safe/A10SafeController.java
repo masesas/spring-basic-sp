@@ -29,7 +29,7 @@ public class A10SafeController {
 
     @PostMapping("/{id}/foto")
     public Map<String, Object> ambilFoto(@PathVariable Integer id, @RequestBody FotoRequest request) {
-        URI uri = UrlGuard.periksa(request.url());
+        URI uri = UrlGuard.periksa(request.getUrl());
 
         ResponseEntity<byte[]> balasan = restTemplate.getForEntity(uri, byte[].class);
         requireBukanRedirect(balasan);

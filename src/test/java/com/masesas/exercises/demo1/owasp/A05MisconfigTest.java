@@ -72,7 +72,7 @@ class A05MisconfigTest {
 
         assertThat(isi)
                 .contains("spring.datasource.password=${DB_PASSWORD}")
-                .contains("app.crypto.key=${CRYPTO_KEY}")
+                .contains("app.security.crypto-key=${CRYPTO_KEY}")
                 .contains("spring.config.import=optional:file:.env[.properties]");
     }
 
@@ -128,7 +128,7 @@ class A05MisconfigTest {
     }
 
     private String bearer() {
-        AppUser user = userDetailsService.loadUserByUsername("hr");
+        AppUser user = userDetailsService.loadUserByUsername("hr@masesas.test");
         return "Bearer " + jwtService.issue(user, Instant.now());
     }
 }

@@ -19,8 +19,8 @@ public class DetailKaryawanWriter {
 
     public DetailKaryawan create(DetailKaryawanRequest request, Instant timestamp) {
         Validators.requireNotNull(request, "detail karyawan");
-        String nik = Validators.requireText(request.nik(), "nik");
-        String npwp = Validators.requireText(request.npwp(), "npwp");
+        String nik = Validators.requireText(request.getNik(), "nik");
+        String npwp = Validators.requireText(request.getNpwp(), "npwp");
 
         if (detailKaryawanRepository.existsByNikAndDeletedDateIsNull(nik)) {
             throw new DuplicateResourceException("NIK sudah terdaftar pada karyawan lain");
@@ -39,8 +39,8 @@ public class DetailKaryawanWriter {
 
     public DetailKaryawan update(DetailKaryawan detail, DetailKaryawanRequest request, Instant timestamp) {
         Validators.requireNotNull(request, "detail karyawan");
-        String nik = Validators.requireText(request.nik(), "nik");
-        String npwp = Validators.requireText(request.npwp(), "npwp");
+        String nik = Validators.requireText(request.getNik(), "nik");
+        String npwp = Validators.requireText(request.getNpwp(), "npwp");
 
         if (detailKaryawanRepository.existsByNikAndDeletedDateIsNullAndIdNot(nik, detail.getId())) {
             throw new DuplicateResourceException("NIK sudah terdaftar pada karyawan lain");

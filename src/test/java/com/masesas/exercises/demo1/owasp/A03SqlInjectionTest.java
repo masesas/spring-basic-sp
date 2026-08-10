@@ -129,7 +129,7 @@ class A03SqlInjectionTest {
     }
 
     private String bearer() {
-        AppUser user = userDetailsService.loadUserByUsername("hr");
+        AppUser user = userDetailsService.loadUserByUsername("hr@masesas.test");
         return "Bearer " + jwtService.issue(user, Instant.now());
     }
 }

@@ -15,6 +15,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
@@ -62,13 +63,16 @@ class A09LoggingTest {
     @Autowired
     private RateLimitFilter rateLimitFilter;
 
+    @Value("${app.security.password}")
+    private String password;
+
     private Integer idKaryawan;
     private ListAppender<ILoggingEvent> audit;
     private Logger auditLogger;
 
     @BeforeEach
     void siapkan() {
-        loginAttempts.reset("hr");
+        loginAttempts.reset("hr@masesas.test");
         rateLimitFilter.bersihkan();
 
         auditLogger = (Logger) LoggerFactory.getLogger("AUDIT");
@@ -116,7 +120,7 @@ class A09LoggingTest {
         assertThat(barisAudit()).hasSize(1);
         assertThat(barisAudit().get(0))
                 .contains("aksi=payroll.update")
-                .contains("aktor=hr")
+                .contains("aktor=hr@masesas.test")
                 .contains("peran=ROLE_HR")
                 .contains("hasil=BERHASIL");
     }
@@ -138,7 +142,7 @@ class A09LoggingTest {
     @DisplayName("AMAN: login gagal dan berhasil sama-sama tercatat")
     void safe_eventLoginTercatat() throws Exception {
         mockMvc.perform(loginRequest("salah")).andExpect(status().isUnauthorized());
-        mockMvc.perform(loginRequest("Password123!")).andExpect(status().isOk());
+        mockMvc.perform(loginRequest(password)).andExpect(status().isOk());
 
         assertThat(barisAudit()).hasSize(2);
         assertThat(barisAudit().get(0)).contains("aksi=auth.login", "hasil=GAGAL:KREDENSIAL");
@@ -171,11 +175,11 @@ class A09LoggingTest {
     private org.springframework.test.web.servlet.RequestBuilder loginRequest(String password) {
         return post("/api/safe/login")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"username\":\"hr\",\"password\":\"" + password + "\"}");
+                .content("{\"username\":\"hr@masesas.test\",\"password\":\"" + password + "\"}");
     }
 
     private String bearer() {
-        AppUser user = userDetailsService.loadUserByUsername("hr");
+        AppUser user = userDetailsService.loadUserByUsername("hr@masesas.test");
         return "Bearer " + jwtService.issue(user, Instant.now());
     }
 }

@@ -51,7 +51,7 @@ class RbacKaryawanTest {
     @Autowired
     private LoginAttemptService loginAttempts;
 
-    @Value("${app.demo.password}")
+    @Value("${app.security.password}")
     private String demoPassword;
 
     @BeforeEach

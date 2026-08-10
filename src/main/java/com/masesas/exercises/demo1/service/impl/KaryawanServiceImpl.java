@@ -62,15 +62,15 @@ public class KaryawanServiceImpl implements KaryawanService {
         Instant now = Instant.now();
 
         Karyawan karyawan = new Karyawan();
-        karyawan.setNama(Validators.requireText(request.nama(), "nama"));
-        karyawan.setAlamat(Validators.trimOrNull(request.alamat()));
-        karyawan.setDob(Validators.requireNotFuture(request.dob(), "dob", LocalDate.now()));
-        karyawan.setStatus(Validators.requireText(request.status(), "status"));
+        karyawan.setNama(Validators.requireText(request.getNama(), "nama"));
+        karyawan.setAlamat(Validators.trimOrNull(request.getAlamat()));
+        karyawan.setDob(Validators.requireNotFuture(request.getDob(), "dob", LocalDate.now()));
+        karyawan.setStatus(Validators.requireText(request.getStatus(), "status"));
         karyawan.setCreatedDate(now);
         karyawan.setUpdatedDate(now);
 
-        if (request.detail() != null) {
-            karyawan.setDetailKaryawan(detailKaryawanWriter.create(request.detail(), now));
+        if (request.getDetail() != null) {
+            karyawan.setDetailKaryawan(detailKaryawanWriter.create(request.getDetail(), now));
         }
 
         return KaryawanResponse.from(karyawanRepository.save(karyawan));
@@ -90,10 +90,10 @@ public class KaryawanServiceImpl implements KaryawanService {
         Karyawan karyawan = requireActive(id);
         Instant now = Instant.now();
 
-        karyawan.setNama(Validators.requireText(request.nama(), "nama"));
-        karyawan.setAlamat(Validators.trimOrNull(request.alamat()));
-        karyawan.setDob(Validators.requireNotFuture(request.dob(), "dob", LocalDate.now()));
-        karyawan.setStatus(Validators.requireText(request.status(), "status"));
+        karyawan.setNama(Validators.requireText(request.getNama(), "nama"));
+        karyawan.setAlamat(Validators.trimOrNull(request.getAlamat()));
+        karyawan.setDob(Validators.requireNotFuture(request.getDob(), "dob", LocalDate.now()));
+        karyawan.setStatus(Validators.requireText(request.getStatus(), "status"));
         karyawan.setUpdatedDate(now);
 
         return KaryawanResponse.from(karyawanRepository.save(karyawan));
@@ -110,7 +110,7 @@ public class KaryawanServiceImpl implements KaryawanService {
     }
 
     @Override
-    public Page<KaryawanResponse> findAll(Pageable pageable) {
+    public Page<KaryawanResponse> findAll(Pageable pageable)  {
         return karyawanRepository.findAllByDeletedDateIsNull(pageable).map(KaryawanResponse::from);
     }
 

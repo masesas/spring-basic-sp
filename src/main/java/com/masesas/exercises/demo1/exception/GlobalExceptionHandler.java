@@ -20,19 +20,6 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-/**
- * Memetakan exception domain ke status HTTP yang tepat. Tanpa ini semuanya
- * jatuh ke 500, termasuk kasus wajar seperti data tidak ditemukan.
- *
- * <p>Kelas ini mewarisi {@link ResponseEntityExceptionHandler} dengan sengaja. Tanpa itu,
- * handler {@code Exception.class} di bawah ikut menelan exception bawaan Spring MVC
- * (misal {@code NoResourceFoundException} untuk URL tak dikenal) dan mengubah 404 jadi 500.
- * Superclass-nya sudah menangani exception standar tersebut secara spesifik, dan Spring
- * selalu memilih handler yang paling spesifik.
- *
- * <p>Pesan detail hanya dikirim untuk exception domain yang memang kita rancang aman dibaca
- * klien. Exception tak terduga dicatat lengkap di log, tapi klien hanya menerima pesan generik.
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
@@ -43,15 +30,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
-    /**
-     * Dua sumber konflik yang berbeda, keduanya bermuara ke 409.
-     *
-     * <p>{@link ConflictException} muncul saat klien mengirim {@code version} yang sudah
-     * basi — dia mengedit berdasarkan data yang keburu diubah orang lain.
-     * {@link ObjectOptimisticLockingFailureException} muncul saat dua transaksi menulis
-     * baris yang sama benar-benar bersamaan dan Hibernate mendeteksinya lewat kolom
-     * {@code version}.
-     */
     @ExceptionHandler({ConflictException.class, ObjectOptimisticLockingFailureException.class})
     public ResponseEntity<Map<String, Object>> handleConflict(Exception ex) {
         String pesan = ex instanceof ConflictException
@@ -75,11 +53,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
     }
 
-    /**
-     * Bean Validation pada {@code @RequestBody}. Superclass memetakannya ke 400 tapi dengan
-     * body ProblemDetail bawaan Spring; di sini dipaksa memakai amplop yang sama dengan
-     * handler lain, dan pesannya menyebut field mana yang bermasalah.
-     */
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
             MethodArgumentNotValidException ex,
@@ -92,7 +65,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<>(body(HttpStatus.BAD_REQUEST, pesan), HttpStatus.BAD_REQUEST);
     }
 
-    /** Bean Validation pada {@code @RequestParam}/{@code @PathVariable} kelas ber-{@code @Validated}. */
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex) {
         String pesan = ex.getConstraintViolations().stream()
@@ -101,11 +73,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, pesan);
     }
 
-    /**
-     * Tanpa handler ini, {@code AccessDeniedException} dari {@code @PreAuthorize} tertelan
-     * handler {@code Exception.class} di bawah dan berubah jadi 500 — penolakan otorisasi
-     * jadi tampak seperti kerusakan server.
-     */
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex) {
         return build(HttpStatus.FORBIDDEN, "Akses ditolak");

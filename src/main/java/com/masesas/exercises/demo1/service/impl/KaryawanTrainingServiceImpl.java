@@ -47,20 +47,20 @@ public class KaryawanTrainingServiceImpl implements KaryawanTrainingService {
     @Transactional
     public KaryawanTrainingResponse create(KaryawanTrainingRequest request) {
         Validators.requireNotNull(request, "data karyawan training");
-        Karyawan karyawan = requireActiveKaryawan(request.idKaryawan());
-        Training training = requireActiveTraining(request.idTraining());
-        Validators.requireNotNull(request.tanggal(), "tanggal");
+        Karyawan karyawan = requireActiveKaryawan(request.getIdKaryawan());
+        Training training = requireActiveTraining(request.getIdTraining());
+        Validators.requireNotNull(request.getTanggal(), "tanggal");
 
         if (karyawanTrainingRepository.existsByIdKaryawan_IdAndIdTraining_IdAndDeletedDateIsNull(
                 karyawan.getId(), training.getId())) {
             throw new DuplicateResourceException("Karyawan sudah terdaftar pada training tersebut");
         }
 
-        Instant now = Instant.now(clock);
+        Instant now = Instant.now();
         KaryawanTraining karyawanTraining = new KaryawanTraining();
         karyawanTraining.setIdKaryawan(karyawan);
         karyawanTraining.setIdTraining(training);
-        karyawanTraining.setTanggal(request.tanggal());
+        karyawanTraining.setTanggal(request.getTanggal());
         karyawanTraining.setCreatedDate(now);
         karyawanTraining.setUpdatedDate(now);
 
@@ -72,9 +72,9 @@ public class KaryawanTrainingServiceImpl implements KaryawanTrainingService {
     public KaryawanTrainingResponse update(Integer id, KaryawanTrainingRequest request) {
         Validators.requireNotNull(request, "data karyawan training");
         KaryawanTraining karyawanTraining = requireActive(id);
-        Karyawan karyawan = requireActiveKaryawan(request.idKaryawan());
-        Training training = requireActiveTraining(request.idTraining());
-        Validators.requireNotNull(request.tanggal(), "tanggal");
+        Karyawan karyawan = requireActiveKaryawan(request.getIdKaryawan());
+        Training training = requireActiveTraining(request.getIdTraining());
+        Validators.requireNotNull(request.getTanggal(), "tanggal");
 
         if (karyawanTrainingRepository.existsByIdKaryawan_IdAndIdTraining_IdAndDeletedDateIsNullAndIdNot(
                 karyawan.getId(), training.getId(), id)) {
@@ -83,8 +83,8 @@ public class KaryawanTrainingServiceImpl implements KaryawanTrainingService {
 
         karyawanTraining.setIdKaryawan(karyawan);
         karyawanTraining.setIdTraining(training);
-        karyawanTraining.setTanggal(request.tanggal());
-        karyawanTraining.setUpdatedDate(Instant.now(clock));
+        karyawanTraining.setTanggal(request.getTanggal());
+        karyawanTraining.setUpdatedDate(Instant.now());
 
         return KaryawanTrainingResponse.from(karyawanTrainingRepository.save(karyawanTraining));
     }

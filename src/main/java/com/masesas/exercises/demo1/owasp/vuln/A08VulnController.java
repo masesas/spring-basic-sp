@@ -34,7 +34,7 @@ public class A08VulnController {
         jdbcTemplate.update(
                 "UPDATE masesas.payroll_karyawan SET gaji_pokok = ?, updated_date = now() "
                         + "WHERE id_karyawan = ? AND periode = ?",
-                request.gajiPokok(), idKaryawan, awalBulan);
+                request.getGajiPokok(), idKaryawan, awalBulan);
 
         return jdbcTemplate.queryForMap(
                 "SELECT id_karyawan, periode, gaji_pokok, version FROM masesas.payroll_karyawan "

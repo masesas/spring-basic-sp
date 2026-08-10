@@ -31,7 +31,7 @@ public class A04VulnController {
         jdbcTemplate.update(
                 "UPDATE masesas.payroll_karyawan SET gaji_pokok = ?, updated_date = now() "
                         + "WHERE id_karyawan = ? AND periode = ?",
-                request.gajiPokok(),
+                request.getGajiPokok(),
                 idKaryawan,
                 java.sql.Date.valueOf(periode.withDayOfMonth(1)));
 

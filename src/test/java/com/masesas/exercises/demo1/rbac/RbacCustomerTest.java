@@ -45,7 +45,7 @@ class RbacCustomerTest {
     @Autowired
     private CustomerRepository customerRepository;
 
-    @Value("${app.demo.password}")
+    @Value("${app.security.password}")
     private String demoPassword;
 
     @BeforeEach

@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
@@ -47,16 +48,19 @@ class SecurityWhitelistTest {
     @Autowired
     private RateLimitFilter rateLimitFilter;
 
+    @Value("${app.security.password}")
+    private String password;
+
     /**
      * Dua sumber state hidup di luar proses test ini dan bocor antar kelas test:
      * penghitung kegagalan login ada di Redis bersama, dan kuota rate limit ada di
      * memori bean filter yang dipakai ulang seluruh kelas dalam satu context.
-     * Tanpa reset ini, kelas lain yang sengaja mengunci akun "hr" atau menghabiskan
+     * Tanpa reset ini, kelas lain yang sengaja mengunci akun "hr@masesas.test" atau menghabiskan
      * kuota login membuat test di sini gagal dengan 423 atau 429.
      */
     @BeforeEach
     void bersihkanKuncianLogin() {
-        loginAttempts.reset("hr");
+        loginAttempts.reset("hr@masesas.test");
         rateLimitFilter.bersihkan();
     }
 
@@ -71,7 +75,7 @@ class SecurityWhitelistTest {
     @DisplayName("GET dengan token yang sah dibalas 200")
     void getDenganToken_diterima() throws Exception {
         mockMvc.perform(get("/api/karyawan/all")
-                        .header(HttpHeaders.AUTHORIZATION, bearer("hr")))
+                        .header(HttpHeaders.AUTHORIZATION, bearer("hr@masesas.test")))
                 .andExpect(status().isOk());
     }
 
@@ -80,7 +84,7 @@ class SecurityWhitelistTest {
     void login_tetapTerbuka() throws Exception {
         mockMvc.perform(post("/api/safe/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"hr\",\"password\":\"Password123!\"}"))
+                        .content("{\"username\":\"hr@masesas.test\",\"password\":\"" + password + "\"}"))
                 .andExpect(status().isOk());
     }
 
@@ -95,7 +99,7 @@ class SecurityWhitelistTest {
     @DisplayName("path yang tidak terdaftar dibalas 404 saat token sah")
     void pathTidakDikenal_denganToken() throws Exception {
         mockMvc.perform(get("/path-yang-tidak-ada")
-                        .header(HttpHeaders.AUTHORIZATION, bearer("hr")))
+                        .header(HttpHeaders.AUTHORIZATION, bearer("hr@masesas.test")))
                 .andExpect(status().isNotFound());
     }
 

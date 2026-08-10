@@ -29,14 +29,14 @@ public class KaryawanSpService {
 
     /** Update sekaligus baca: SP mengubah data lalu mengembalikan tiga result set. */
     public HasilProsesKaryawan prosesViaJdbc(Integer id, ProsesKaryawanRequest request) {
-        return jdbcRepository.proses(id, request.nama(), request.alamat(), request.status(),
-                modeAtauDefault(request.mode()));
+        return jdbcRepository.proses(id, request.getNama(), request.getAlamat(), request.getStatus(),
+                modeAtauDefault(request.getMode()));
     }
 
     /** Update sekaligus baca: SP mengubah data lalu mengembalikan tiga result set. */
     public HasilProsesKaryawan prosesViaJpa(Integer id, ProsesKaryawanRequest request) {
-        return jpaRepository.proses(id, request.nama(), request.alamat(), request.status(),
-                modeAtauDefault(request.mode()));
+        return jpaRepository.proses(id, request.getNama(), request.getAlamat(), request.getStatus(),
+                modeAtauDefault(request.getMode()));
     }
 
     private String modeAtauDefault(String mode) {

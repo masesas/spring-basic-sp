@@ -2,18 +2,25 @@ package com.masesas.exercises.demo1.dto;
 
 import com.masesas.exercises.demo1.entity.Karyawan;
 import com.masesas.exercises.demo1.entity.Rekening;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
-public record RekeningResponse(
-        Integer id,
-        Integer idKaryawan,
-        String namaKaryawan,
-        String jenis,
-        String nama,
-        String rekening,
-        Instant createdDate,
-        Instant updatedDate) {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class RekeningResponse {
+
+    private Integer id;
+    private Integer idKaryawan;
+    private String namaKaryawan;
+    private String jenis;
+    private String nama;
+    private String rekening;
+    private Instant createdDate;
+    private Instant updatedDate;
 
     public static RekeningResponse from(Rekening rekening) {
         Karyawan karyawan = rekening.getIdKaryawan();

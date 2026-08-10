@@ -25,12 +25,12 @@ public class A10VulnController {
 
     @PostMapping("/{id}/foto")
     public Map<String, Object> ambilFoto(@PathVariable Integer id, @RequestBody FotoRequest request) {
-        ResponseEntity<String> balasan = restTemplate.getForEntity(request.url(), String.class);
+        ResponseEntity<String> balasan = restTemplate.getForEntity(request.getUrl(), String.class);
         String isi = balasan.getBody() == null ? "" : balasan.getBody();
 
         return Map.of(
                 "idKaryawan", id,
-                "url", request.url(),
+                "url", request.getUrl(),
                 "status", balasan.getStatusCode().value(),
                 "isi", isi.length() > PANJANG_CUPLIKAN ? isi.substring(0, PANJANG_CUPLIKAN) : isi);
     }

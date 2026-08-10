@@ -119,7 +119,7 @@ class A02CryptoTest {
     @DisplayName("AMAN: response hanya memuat 4 digit terakhir")
     void safe_nikTersamarDiResponse() throws Exception {
         mockMvc.perform(get("/api/safe/karyawan/" + idKaryawan + "/detail")
-                        .header(HttpHeaders.AUTHORIZATION, bearer("hr")))
+                        .header(HttpHeaders.AUTHORIZATION, bearer("hr@masesas.test")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nik").value("************0001"))
                 .andExpect(jsonPath("$.npwp").value("***********7000"));

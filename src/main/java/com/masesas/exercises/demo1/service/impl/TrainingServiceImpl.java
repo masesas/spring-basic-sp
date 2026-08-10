@@ -41,8 +41,8 @@ public class TrainingServiceImpl implements TrainingService {
     @Transactional
     public TrainingResponse create(TrainingRequest request) {
         Validators.requireNotNull(request, "data training");
-        String tema = Validators.requireText(request.tema(), "tema");
-        String pengajar = Validators.requireText(request.pengajar(), "pengajar");
+        String tema = Validators.requireText(request.getTema(), "tema");
+        String pengajar = Validators.requireText(request.getPengajar(), "pengajar");
 
         if (trainingRepository.existsByTemaIgnoreCaseAndAudit_DeletedDateIsNull(tema)) {
             throw new DuplicateResourceException("Training dengan tema tersebut sudah terdaftar");
@@ -62,8 +62,8 @@ public class TrainingServiceImpl implements TrainingService {
     public TrainingResponse update(Integer id, TrainingRequest request) {
         Validators.requireNotNull(request, "data training");
         Training training = requireActive(id);
-        String tema = Validators.requireText(request.tema(), "tema");
-        String pengajar = Validators.requireText(request.pengajar(), "pengajar");
+        String tema = Validators.requireText(request.getTema(), "tema");
+        String pengajar = Validators.requireText(request.getPengajar(), "pengajar");
 
         if (trainingRepository.existsByTemaIgnoreCaseAndAudit_DeletedDateIsNullAndIdNot(tema, id)) {
             throw new DuplicateResourceException("Training dengan tema tersebut sudah terdaftar");

@@ -74,10 +74,10 @@ class PayrollServiceTest {
                 ID_KARYAWAN, PERIODE,
                 new BigDecimal("8000000"), new BigDecimal("1500000"), new BigDecimal("500000")));
 
-        assertThat(hasil.bruto()).isEqualByComparingTo("9500000");
-        assertThat(hasil.bersih()).isEqualByComparingTo("9000000");
-        assertThat(hasil.periode()).isEqualTo(PERIODE);
-        assertThat(hasil.namaKaryawan()).isEqualTo("Budi");
+        assertThat(hasil.getBruto()).isEqualByComparingTo("9500000");
+        assertThat(hasil.getBersih()).isEqualByComparingTo("9000000");
+        assertThat(hasil.getPeriode()).isEqualTo(PERIODE);
+        assertThat(hasil.getNamaKaryawan()).isEqualTo("Budi");
     }
 
     @Test
@@ -94,7 +94,7 @@ class PayrollServiceTest {
                 ID_KARYAWAN, LocalDate.of(2026, 8, 17),
                 new BigDecimal("5000000"), BigDecimal.ZERO, BigDecimal.ZERO));
 
-        assertThat(hasil.periode()).isEqualTo(PERIODE);
+        assertThat(hasil.getPeriode()).isEqualTo(PERIODE);
         verify(payrollRepository).existsById_IdKaryawanAndId_Periode(ID_KARYAWAN, PERIODE);
     }
 
@@ -155,8 +155,8 @@ class PayrollServiceTest {
                 new PayrollUpdateRequest(
                         null, new BigDecimal("9000000"), new BigDecimal("1000000"), new BigDecimal("250000")));
 
-        assertThat(hasil.bersih()).isEqualByComparingTo("9750000");
-        assertThat(hasil.updatedDate()).isEqualTo(Instant.parse("2026-08-07T00:00:00Z"));
+        assertThat(hasil.getBersih()).isEqualByComparingTo("9750000");
+        assertThat(hasil.getUpdatedDate()).isEqualTo(Instant.parse("2026-08-07T00:00:00Z"));
     }
 
     @Test

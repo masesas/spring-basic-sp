@@ -4,18 +4,16 @@ import com.masesas.exercises.demo1.entity.Karyawan;
 import com.masesas.exercises.demo1.repository.CustomerRepository;
 import com.masesas.exercises.demo1.repository.KaryawanRepository;
 import com.masesas.exercises.demo1.repository.KaryawanRoleRepository;
-import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class AppUserDetailsService implements UserDetailsService {
 
     private static final String ROLE_CUSTOMER = "CUSTOMER";
@@ -23,27 +21,6 @@ public class AppUserDetailsService implements UserDetailsService {
     private final KaryawanRepository karyawanRepository;
     private final KaryawanRoleRepository karyawanRoleRepository;
     private final CustomerRepository customerRepository;
-    private final Map<String, AppUser> demoUsers;
-    private final String rawPassword;
-
-    public AppUserDetailsService(
-            KaryawanRepository karyawanRepository,
-            KaryawanRoleRepository karyawanRoleRepository,
-            CustomerRepository customerRepository,
-            PasswordEncoder passwordEncoder,
-            @Value("${app.demo.password}") String rawPassword) {
-        this.karyawanRepository = karyawanRepository;
-        this.karyawanRoleRepository = karyawanRoleRepository;
-        this.customerRepository = customerRepository;
-        this.rawPassword = rawPassword;
-        String encoded = passwordEncoder.encode(rawPassword);
-
-        Map<String, AppUser> registry = new LinkedHashMap<>();
-        registry.put("admin", new AppUser("admin", encoded, List.of("ADMIN"), null, AppUser.TIPE_KARYAWAN));
-        registry.put("hr", new AppUser("hr", encoded, List.of("HR"), null, AppUser.TIPE_KARYAWAN));
-        registry.put("karyawan", new AppUser("karyawan", encoded, List.of("KARYAWAN"), 1, AppUser.TIPE_KARYAWAN));
-        this.demoUsers = Map.copyOf(registry);
-    }
 
     @Override
     public AppUser loadUserByUsername(String username) {
@@ -52,9 +29,7 @@ public class AppUserDetailsService implements UserDetailsService {
     }
 
     public Optional<AppUser> find(String username) {
-        return findKaryawan(username)
-                .or(() -> findCustomer(username))
-                .or(() -> Optional.ofNullable(demoUsers.get(username)));
+        return findKaryawan(username).or(() -> findCustomer(username));
     }
 
     public Optional<AppUser> findKaryawan(String email) {
@@ -71,10 +46,6 @@ public class AppUserDetailsService implements UserDetailsService {
                         List.of(ROLE_CUSTOMER),
                         null,
                         AppUser.TIPE_CUSTOMER));
-    }
-
-    public String rawPassword() {
-        return rawPassword;
     }
 
     private AppUser toAppUser(Karyawan karyawan) {

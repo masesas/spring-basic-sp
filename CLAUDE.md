@@ -8,24 +8,39 @@ Acuan standar dan aturan kerja untuk proyek `demo1`. Berlaku untuk semua kode ba
 
 Tiga aturan berikut tidak boleh dilanggar.
 
-### 1. Jangan pernah membuat `record` baru
+### 1. Tidak ada `record` di repositori ini
 
-Semua tipe baru (DTO, model, value object) ditulis sebagai **class biasa**, bukan `record`.
+Semua tipe (DTO, model, value object) ditulis sebagai **class biasa**, bukan `record`. Tidak ada lagi `record` yang tersisa — semuanya sudah dikonversi. Jangan membuat yang baru, jangan mengembalikan yang lama.
 
-- `record` yang **sudah ada** dibiarkan apa adanya — jangan dikonversi, jangan disentuh kecuali memang bagian dari perubahan yang diminta.
-- Konsekuensinya: pemanggil `record` lama tetap memakai accessor gaya record (`request.username()`), sedangkan class baru memakai getter biasa. Ini normal, jangan diseragamkan.
+- Semua accessor memakai getter biasa (`request.getUsername()`). Tidak ada lagi accessor gaya record di manapun.
+- Ada dua pola yang dipakai, pilih sesuai kebutuhannya:
+
+**Pola A — DTO & model (default).** Dipakai kalau objeknya melewati Jackson: `@RequestBody`, atau disimpan sebagai nilai cache Redis. Jackson butuh constructor kosong + setter untuk membangun ulang objeknya, dan `@Data` sekaligus menjaga `equals`/`hashCode` yang dulu gratis dari `record`.
 
 ```java
-// SALAH — record baru
-public record RekeningResponse(String nomor, String bank) {}
-
-// BENAR — class + Lombok
-@Getter
+@Data
+@NoArgsConstructor
 @AllArgsConstructor
 public class RekeningResponse {
-    private final String nomor;
-    private final String bank;
+    private String nomor;
+    private String bank;
 }
+```
+
+**Pola B — objek yang tidak pernah lewat Jackson.** Boleh `final` dan tanpa setter. Dipakai `AppUser` di package `security`.
+
+```java
+@Getter
+@AllArgsConstructor
+public class AppUser implements UserDetails {
+    private final String username;
+    private final String password;
+}
+```
+
+```java
+// SALAH — record
+public record RekeningResponse(String nomor, String bank) {}
 ```
 
 ### 2. Sesederhana mungkin

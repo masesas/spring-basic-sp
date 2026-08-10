@@ -34,22 +34,22 @@ public class A07SafeController {
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        if (loginAttempts.isLocked(request.username())) {
-            auditLogger.catat("auth.login", request.username(), "DITOLAK:TERKUNCI");
+        if (loginAttempts.isLocked(request.getUsername())) {
+            auditLogger.catat("auth.login", request.getUsername(), "DITOLAK:TERKUNCI");
             return ResponseEntity.status(HttpStatus.LOCKED).build();
         }
 
-        Optional<AppUser> found = userDetailsService.find(request.username());
-        if (found.isEmpty() || !passwordEncoder.matches(request.password(), found.get().getPassword())) {
-            loginAttempts.recordFailure(request.username());
-            auditLogger.catat("auth.login", request.username(), "GAGAL:KREDENSIAL");
+        Optional<AppUser> found = userDetailsService.find(request.getUsername());
+        if (found.isEmpty() || !passwordEncoder.matches(request.getPassword(), found.get().getPassword())) {
+            loginAttempts.recordFailure(request.getUsername());
+            auditLogger.catat("auth.login", request.getUsername(), "GAGAL:KREDENSIAL");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        loginAttempts.reset(request.username());
-        auditLogger.catat("auth.login", request.username(), "BERHASIL");
+        loginAttempts.reset(request.getUsername());
+        auditLogger.catat("auth.login", request.getUsername(), "BERHASIL");
         AppUser user = found.get();
         String token = jwtService.issue(user, Instant.now(clock));
-        return ResponseEntity.ok(new LoginResponse(token, String.join(",", user.roles())));
+        return ResponseEntity.ok(new LoginResponse(token, String.join(",", user.getRoles())));
     }
 }

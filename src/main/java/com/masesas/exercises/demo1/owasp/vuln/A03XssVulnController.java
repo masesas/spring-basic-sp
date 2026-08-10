@@ -32,8 +32,8 @@ public class A03XssVulnController {
                 "INSERT INTO masesas.karyawan (nama, alamat, dob, status, created_date) "
                         + "VALUES (?, ?, DATE '1990-01-01', 'AKTIF', now()) RETURNING id",
                 Integer.class,
-                request.nama(),
-                request.alamat());
+                request.getNama(),
+                request.getAlamat());
 
         return jdbcTemplate.queryForMap(
                 "SELECT id, nama, alamat FROM masesas.karyawan WHERE id = ?", id);

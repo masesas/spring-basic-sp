@@ -25,7 +25,7 @@ public class CryptoConverter implements AttributeConverter<String, String> {
     private final SecretKey kunci;
     private final SecureRandom acak = new SecureRandom();
 
-    public CryptoConverter(@Value("${app.crypto.key}") String kunciBase64) {
+    public CryptoConverter(@Value("${app.security.crypto-key}") String kunciBase64) {
         this.kunci = new SecretKeySpec(Base64.getDecoder().decode(kunciBase64), "AES");
     }
 

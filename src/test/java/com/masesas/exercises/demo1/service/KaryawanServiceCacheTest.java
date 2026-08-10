@@ -70,7 +70,7 @@ class KaryawanServiceCacheTest {
         KaryawanResponse pertama = karyawanService.findById(ID);
         KaryawanResponse kedua = karyawanService.findById(ID);
 
-        assertThat(pertama.nama()).isEqualTo("Budi");
+        assertThat(pertama.getNama()).isEqualTo("Budi");
         assertThat(kedua).isEqualTo(pertama);
         verify(karyawanRepository, times(1)).findByIdAndDeletedDateIsNull(ID);
     }

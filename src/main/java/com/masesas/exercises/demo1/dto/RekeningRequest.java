@@ -1,8 +1,16 @@
 package com.masesas.exercises.demo1.dto;
 
-public record RekeningRequest(
-        Integer idKaryawan,
-        String jenis,
-        String nama,
-        String rekening) {
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class RekeningRequest {
+
+    private Integer idKaryawan;
+    private String jenis;
+    private String nama;
+    private String rekening;
 }

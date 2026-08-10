@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Penjaga kunci enkripsi terhadap data nyata.
  *
  * <p>Berbeda dari {@link A02CryptoTest} yang menanam datanya sendiri, kelas ini membaca
- * baris yang benar-benar ada di database. Kalau {@code app.crypto.key} diganti tanpa
+ * baris yang benar-benar ada di database. Kalau {@code app.security.crypto-key} diganti tanpa
  * mengenkripsi ulang, test ini gagal keras — jauh lebih baik daripada ketahuan
  * berbulan-bulan kemudian saat ada yang membuka slip gaji dan datanya sudah tidak
  * bisa dipulihkan.

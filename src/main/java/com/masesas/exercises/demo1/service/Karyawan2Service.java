@@ -86,17 +86,17 @@ public class Karyawan2Service {
                 "INSERT INTO masesas.karyawan (nama, alamat, dob, status, created_date) "
                         + "VALUES (?, ?, ?, ?, now()) RETURNING id",
                 Integer.class,
-                request.nama(),
-                request.alamat(),
-                request.dob(),
-                request.status());
+                request.getNama(),
+                request.getAlamat(),
+                request.getDob(),
+                request.getStatus());
         return getById(id);
     }
 
     public int insertBatch(List<Karyawan2Request> requests) {
         List<Object[]> params = new ArrayList<>();
         for (Karyawan2Request request : requests) {
-            params.add(new Object[]{request.nama(), request.alamat(), request.dob(), request.status()});
+            params.add(new Object[]{request.getNama(), request.getAlamat(), request.getDob(), request.getStatus()});
         }
         int[] affected = jdbcTemplate.batchUpdate(
                 "INSERT INTO masesas.karyawan (nama, alamat, dob, status, created_date) "
@@ -109,10 +109,10 @@ public class Karyawan2Service {
         int affected = jdbcTemplate.update(
                 "UPDATE masesas.karyawan SET nama = ?, alamat = ?, dob = ?, status = ?, updated_date = now() "
                         + "WHERE id = ? AND deleted_date IS NULL",
-                request.nama(),
-                request.alamat(),
-                request.dob(),
-                request.status(),
+                request.getNama(),
+                request.getAlamat(),
+                request.getDob(),
+                request.getStatus(),
                 id);
         return affected == 0 ? null : getById(id);
     }

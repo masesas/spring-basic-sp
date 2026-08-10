@@ -1,11 +1,21 @@
 package com.masesas.exercises.demo1.model;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDate;
 
-/** Result set 3 dari sp_proses_karyawan: daftar training yang diikuti karyawan. */
-public record TrainingRingkas(Integer id, String tema, String pengajar, LocalDate tanggal) {
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class TrainingRingkas {
 
-    /** Urutan kolom sama dengan urutan di cursor p_training. */
+    private Integer id;
+    private String tema;
+    private String pengajar;
+    private LocalDate tanggal;
+
     public static TrainingRingkas fromRow(Object[] row) {
         return new TrainingRingkas(
                 ((Number) row[0]).intValue(),

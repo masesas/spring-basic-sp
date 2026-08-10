@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
@@ -55,12 +56,15 @@ class A04InsecureDesignTest {
     @Autowired
     private AppUserDetailsService userDetailsService;
 
+    @Value("${app.security.password}")
+    private String password;
+
     private Integer idKaryawan;
 
     @BeforeEach
     void siapkan() {
         rateLimitFilter.bersihkan();
-        loginAttempts.reset("hr");
+        loginAttempts.reset("hr@masesas.test");
 
         idKaryawan = jdbcTemplate.queryForObject(
                 "INSERT INTO masesas.karyawan (nama, alamat, dob, status, created_date) "
@@ -112,7 +116,7 @@ class A04InsecureDesignTest {
         mockMvc.perform(put("/api/payroll/" + idKaryawan + "/" + PERIODE)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"gajiPokok\":1}")
-                        .header(HttpHeaders.AUTHORIZATION, bearer("hr")))
+                        .header(HttpHeaders.AUTHORIZATION, bearer("hr@masesas.test")))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.message").value(
                         org.hamcrest.Matchers.containsString("sudah disetujui")));
@@ -131,7 +135,7 @@ class A04InsecureDesignTest {
         mockMvc.perform(put("/api/payroll/" + idKaryawan + "/" + PERIODE)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"gajiPokok\":7000000}")
-                        .header(HttpHeaders.AUTHORIZATION, bearer("hr")))
+                        .header(HttpHeaders.AUTHORIZATION, bearer("hr@masesas.test")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("DRAFT"));
     }
@@ -147,7 +151,7 @@ class A04InsecureDesignTest {
     private org.springframework.test.web.servlet.RequestBuilder loginRequest(String path) {
         return post(path)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"username\":\"hr\",\"password\":\"Password123!\"}");
+                .content("{\"username\":\"hr@masesas.test\",\"password\":\"" + password + "\"}");
     }
 
     private String bearer(String username) {

@@ -10,19 +10,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * REST endpoint untuk data karyawan.
@@ -36,7 +31,9 @@ public class KaryawanController {
 
     private final KaryawanService karyawanService;
 
-    /** POST /api/karyawan — buat karyawan baru. */
+    /**
+     * POST /api/karyawan — buat karyawan baru.
+     */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
@@ -44,13 +41,17 @@ public class KaryawanController {
         return karyawanService.create(request);
     }
 
-    /** GET /api/karyawan/{id} — ambil satu karyawan. */
+    /**
+     * GET /api/karyawan/{id} — ambil satu karyawan.
+     */
     @GetMapping("/{id}")
     public KaryawanResponse findById(@PathVariable Integer id) {
         return karyawanService.findById(id);
     }
 
-    /** GET /api/karyawan?page=0&size=10&sort=nama,asc — ambil daftar karyawan. */
+    /**
+     * GET /api/karyawan?page=0&size=10&sort=nama,asc — ambil daftar karyawan.
+     */
     @GetMapping
     public Page<KaryawanResponse> findAll(Pageable pageable) {
         return karyawanService.findAll(pageable);
@@ -71,20 +72,26 @@ public class KaryawanController {
         return karyawanService.findPageByNama(nama, page, size);
     }
 
-    /** GET /api/karyawan/all — semua karyawan tanpa pagination (hasilnya di-cache di Redis). */
+    /**
+     * GET /api/karyawan/all — semua karyawan tanpa pagination (hasilnya di-cache di Redis).
+     */
     @GetMapping("/all")
     public List<KaryawanResponse> findAllWithoutPaging() {
         return karyawanService.findAll();
     }
 
-    /** PUT /api/karyawan/{id} — ubah data karyawan. */
+    /**
+     * PUT /api/karyawan/{id} — ubah data karyawan.
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public KaryawanResponse update(@PathVariable Integer id, @Valid @RequestBody UpdateKaryawanRequest request) {
         return karyawanService.update(id, request);
     }
 
-    /** DELETE /api/karyawan/{id} — soft delete karyawan. */
+    /**
+     * DELETE /api/karyawan/{id} — soft delete karyawan.
+     */
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("hasRole('ADMIN')")
@@ -92,17 +99,33 @@ public class KaryawanController {
         karyawanService.delete(id);
     }
 
-    /** PUT /api/karyawan/{id}/detail — tambah atau ubah detail karyawan. */
+    /**
+     * PUT /api/karyawan/{id}/detail — tambah atau ubah detail karyawan.
+     */
     @PutMapping("/{id}/detail")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public KaryawanResponse upsertDetail(@PathVariable Integer id, @Valid @RequestBody DetailKaryawanRequest request) {
         return karyawanService.upsertDetail(id, request);
     }
 
-    /** DELETE /api/karyawan/{id}/detail — hapus detail karyawan saja. */
+    /**
+     * DELETE /api/karyawan/{id}/detail — hapus detail karyawan saja.
+     */
     @DeleteMapping("/{id}/detail")
     @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
     public KaryawanResponse removeDetail(@PathVariable Integer id) {
         return karyawanService.removeDetail(id);
+    }
+
+
+    @PostMapping(
+            value = "/{id}/upload",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<?> upload(
+            @PathVariable UUID id,
+            @RequestPart("file") MultipartFile file
+    ) {
+        return null;
     }
 }

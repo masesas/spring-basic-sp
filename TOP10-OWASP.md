@@ -85,17 +85,24 @@ Dua bentuk yang dibuat di sini:
 
 Tanpa token dibalas **401**; token sah tapi peran kurang dibalas **403**.
 
-Peran `ADMIN`, `MANAGER`, `MARKETING`, dan `SALES` datang dari tabel `masesas.karyawan_role` dan dibaca ulang dari database pada setiap request. Peran `HR` dan `KARYAWAN` hanya ada di registry akun demo di memori — dipertahankan khusus untuk latihan A01 dan A07 ini. Rancangannya dijelaskan di [IMPLEMENTATION-PLAN-RBAC-FASE2.md](./IMPLEMENTATION-PLAN-RBAC-FASE2.md).
+Sejak RBAC Fase 3, **seluruh** peran karyawan — `ADMIN`, `MANAGER`, `MARKETING`, `SALES`, `HR`, dan `KARYAWAN` — datang dari tabel `masesas.role` dan `masesas.karyawan_role`, dan dibaca ulang dari database pada setiap request. Registry akun demo di memori sudah dihapus; tidak ada lagi peran yang hanya hidup di kode. Karena peran dibaca per request, pencabutan peran langsung berlaku tanpa menunggu token kedaluwarsa.
+
+Dua peran tidak berasal dari `karyawan_role`, dan keduanya disengaja:
+
+- `CUSTOMER` melekat pada tipe principal, bukan penugasan — customer bukan karyawan dan tidak punya baris `karyawan_role`.
+- `GUEST` diberikan Spring Security kepada pengunjung anonim lewat `AnonymousConfigurer`, dan juga melekat pada setiap pengguna yang sudah login. Artinya `hasRole('GUEST')` berarti "siapa pun, login atau tidak" — penanda bahwa sebuah endpoint memang publik, bukan penyaring.
+
+Rancangannya dijelaskan di [IMPLEMENTATION-PLAN-RBAC-FASE3.md](./IMPLEMENTATION-PLAN-RBAC-FASE3.md).
 
 ### Mencobanya
 
 ```bash
 TOKEN=$(curl -s -X POST localhost:8080/api/safe/login \
   -H 'Content-Type: application/json' \
-  -d '{"username":"karyawan","password":"Password123!"}' | jq -r .token)
+  -d '{"username":"karyawan@masesas.test","password":"'"$DEMO_PASSWORD"'"}' | jq -r .token)
 
-# slip gaji sendiri (idKaryawan=1) -> 200
-curl -s -o /dev/null -w '%{http_code}\n' localhost:8080/api/safe/payroll/1 \
+# slip gaji sendiri (idKaryawan=8) -> 200
+curl -s -o /dev/null -w '%{http_code}\n' localhost:8080/api/safe/payroll/8 \
   -H "Authorization: Bearer $TOKEN"
 
 # slip gaji orang lain -> 403
@@ -354,14 +361,14 @@ Path yang dibatasi 10 permintaan/menit per IP: `/api/safe/login` dan `/api/safe/
 for i in $(seq 1 11); do
   curl -s -o /dev/null -w "$i: %{http_code}\n" -X POST localhost:8080/api/safe/login \
     -H 'Content-Type: application/json' \
-    -d '{"username":"hr","password":"Password123!"}'
+    -d '{"username":"hr@masesas.test","password":"'"$DEMO_PASSWORD"'"}'
 done
 
 # RENTAN: berapa kali pun tetap 200
 for i in $(seq 1 15); do
   curl -s -o /dev/null -w "$i: %{http_code}\n" -X POST localhost:8080/api/vuln/login \
     -H 'Content-Type: application/json' \
-    -d '{"username":"hr","password":"Password123!"}'
+    -d '{"username":"hr@masesas.test","password":"'"$DEMO_PASSWORD"'"}'
 done
 ```
 
@@ -543,12 +550,12 @@ Password ketiganya sama, diambil dari properti `app.demo.password` (nilai awal `
 # versi aman - token berlaku 15 menit
 curl -s -X POST localhost:8080/api/safe/login \
   -H 'Content-Type: application/json' \
-  -d '{"username":"hr","password":"Password123!"}'
+  -d '{"username":"hr@masesas.test","password":"'"$DEMO_PASSWORD"'"}'
 
 # versi rentan - token tanpa masa berlaku, berlaku selamanya
 curl -s -X POST localhost:8080/api/vuln/login \
   -H 'Content-Type: application/json' \
-  -d '{"username":"hr","password":"Password123!"}'
+  -d '{"username":"hr@masesas.test","password":"'"$DEMO_PASSWORD"'"}'
 
 # salah password 5x di /api/safe/login -> percobaan ke-6 dibalas 423 Locked
 # salah password berapa kali pun di /api/vuln/login -> tidak pernah terkunci

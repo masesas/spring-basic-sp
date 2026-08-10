@@ -1,11 +1,11 @@
 package com.masesas.exercises.demo1.config;
 
 import com.masesas.exercises.demo1.owasp.safe.RateLimitFilter;
+import com.masesas.exercises.demo1.security.AppUser;
 import com.masesas.exercises.demo1.security.JwtAuthFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -40,7 +40,7 @@ public class SecurityConfig {
 
     private final List<String> allowedOrigins;
 
-    public SecurityConfig(@Value("${app.cors.allowed-origins}") List<String> allowedOrigins) {
+    public SecurityConfig(@Value("${app.security.cors-allowed-origins}") List<String> allowedOrigins) {
         this.allowedOrigins = List.copyOf(allowedOrigins);
     }
 
@@ -63,9 +63,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/safe/login").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/vuln/**").permitAll()
-                        .requestMatchers(HttpMethod.DELETE, "/api/karyawan/**", "/api/karyawan2/**")
-                        .hasRole("ADMIN")
-                        .anyRequest().authenticated())
+                        .anyRequest().authenticated()
+                )
+                .anonymous(anonymous -> anonymous
+                        .principal(AppUser.PRINCIPAL_GUEST)
+                        .authorities(AppUser.ROLE_GUEST))
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .formLogin(form -> form.disable())

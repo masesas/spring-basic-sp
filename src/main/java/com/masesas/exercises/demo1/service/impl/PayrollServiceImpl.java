@@ -43,8 +43,8 @@ public class PayrollServiceImpl implements PayrollService {
     @Transactional
     public PayrollResponse create(PayrollRequest request) {
         Validators.requireNotNull(request, "data payroll");
-        Karyawan karyawan = requireActiveKaryawan(request.idKaryawan());
-        LocalDate periode = normalkanPeriode(request.periode());
+        Karyawan karyawan = requireActiveKaryawan(request.getIdKaryawan());
+        LocalDate periode = normalkanPeriode(request.getPeriode());
 
         if (payrollRepository.existsById_IdKaryawanAndId_Periode(karyawan.getId(), periode)) {
             throw new DuplicateResourceException(
@@ -52,7 +52,7 @@ public class PayrollServiceImpl implements PayrollService {
         }
 
         KomponenGaji komponen = komponenDari(
-                request.gajiPokok(), request.tunjangan(), request.potongan());
+                request.getGajiPokok(), request.getTunjangan(), request.getPotongan());
 
         PayrollKaryawan payroll =
                 PayrollKaryawan.baru(karyawan, periode, komponen, Instant.now(clock));
@@ -65,10 +65,10 @@ public class PayrollServiceImpl implements PayrollService {
     public PayrollResponse update(Integer idKaryawan, LocalDate periode, PayrollUpdateRequest request) {
         Validators.requireNotNull(request, "data payroll");
         PayrollKaryawan payroll = requireExisting(idKaryawan, periode);
-        requireVersiTerbaru(payroll, request.version());
+        requireVersiTerbaru(payroll, request.getVersion());
 
         KomponenGaji komponen = komponenDari(
-                request.gajiPokok(), request.tunjangan(), request.potongan());
+                request.getGajiPokok(), request.getTunjangan(), request.getPotongan());
         payroll.revisi(komponen, Instant.now(clock));
 
         // saveAndFlush, bukan save: @Version baru naik saat flush. Tanpa ini response

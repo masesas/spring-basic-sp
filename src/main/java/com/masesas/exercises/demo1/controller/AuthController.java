@@ -37,7 +37,7 @@ public class AuthController {
 
     @PostMapping("/karyawan/login")
     public ResponseEntity<AuthResponse> loginKaryawan(@Valid @RequestBody LoginRequest request) {
-        return login(userDetailsService.findKaryawan(request.username()), request);
+        return login(userDetailsService.findKaryawan(request.getUsername()), request);
     }
 
     @PostMapping("/customer/register")
@@ -47,22 +47,22 @@ public class AuthController {
 
     @PostMapping("/customer/login")
     public ResponseEntity<AuthResponse> loginCustomer(@Valid @RequestBody LoginRequest request) {
-        return login(userDetailsService.findCustomer(request.username()), request);
+        return login(userDetailsService.findCustomer(request.getUsername()), request);
     }
 
     private ResponseEntity<AuthResponse> login(Optional<AppUser> found, LoginRequest request) {
-        if (loginAttempts.isLocked(request.username())) {
+        if (loginAttempts.isLocked(request.getUsername())) {
             return ResponseEntity.status(HttpStatus.LOCKED).build();
         }
 
-        if (found.isEmpty() || !passwordEncoder.matches(request.password(), found.get().getPassword())) {
-            loginAttempts.recordFailure(request.username());
+        if (found.isEmpty() || !passwordEncoder.matches(request.getPassword(), found.get().getPassword())) {
+            loginAttempts.recordFailure(request.getUsername());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        loginAttempts.reset(request.username());
+        loginAttempts.reset(request.getUsername());
         AppUser user = found.get();
         String token = jwtService.issue(user, Instant.now(clock));
-        return ResponseEntity.ok(new AuthResponse(token, user.tipe(), user.roles()));
+        return ResponseEntity.ok(new AuthResponse(token, user.getTipe(), user.getRoles()));
     }
 }
