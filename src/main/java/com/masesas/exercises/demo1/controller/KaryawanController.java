@@ -11,13 +11,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * REST endpoint untuk data karyawan.
@@ -58,6 +56,7 @@ public class KaryawanController {
     }
 
     @GetMapping("/page")
+    @PreAuthorize("hasRole('ADMIN')")
     public Page<KaryawanResponse> findPage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -118,14 +117,30 @@ public class KaryawanController {
     }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     @PostMapping(
-            value = "/{id}/upload",
+            value = "/{id}/avatar",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
-    public ResponseEntity<?> upload(
-            @PathVariable UUID id,
+    public KaryawanResponse uploadAvatar(
+            @PathVariable Integer id,
             @RequestPart("file") MultipartFile file
     ) {
-        return null;
+        return karyawanService.uploadAvatar(id, file);
     }
 }

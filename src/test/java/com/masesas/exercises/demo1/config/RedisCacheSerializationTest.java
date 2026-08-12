@@ -33,6 +33,7 @@ class RedisCacheSerializationTest {
                 "Jakarta",
                 LocalDate.of(1990, 1, 1),
                 "AKTIF",
+                null,
                 new DetailKaryawanResponse(9, "3273010101900001", "09.254.294.3-407.000",
                         Instant.parse("2024-01-01T00:00:00Z"),
                         Instant.parse("2024-01-02T00:00:00Z")),
@@ -49,9 +50,9 @@ class RedisCacheSerializationTest {
     @DisplayName("daftar karyawan (hasil get all) bolak-balik JSON tanpa kehilangan data")
     void daftarKaryawan_serialisasiBolakBalik() {
         List<KaryawanResponse> asli = new ArrayList<>(List.of(
-                new KaryawanResponse(1, "Budi", "Jakarta", LocalDate.of(1990, 1, 1), "AKTIF", null,
+                new KaryawanResponse(1, "Budi", "Jakarta", LocalDate.of(1990, 1, 1), "AKTIF", null, null,
                         Instant.parse("2024-01-01T00:00:00Z"), Instant.parse("2024-01-01T00:00:00Z")),
-                new KaryawanResponse(2, "Siti", "Bandung", LocalDate.of(1995, 5, 5), "AKTIF", null,
+                new KaryawanResponse(2, "Siti", "Bandung", LocalDate.of(1995, 5, 5), "AKTIF", null, null,
                         Instant.parse("2024-02-01T00:00:00Z"), Instant.parse("2024-02-01T00:00:00Z"))));
 
         Object hasil = serializer.deserialize(serializer.serialize(asli));
@@ -71,7 +72,7 @@ class RedisCacheSerializationTest {
     @DisplayName("List.of tidak bisa dipakai sebagai nilai cache -- alasan findAll memakai ArrayList")
     void listImmutable_tidakBisaDibacaKembali() {
         List<KaryawanResponse> immutable = List.of(
-                new KaryawanResponse(1, "Budi", "Jakarta", LocalDate.of(1990, 1, 1), "AKTIF", null,
+                new KaryawanResponse(1, "Budi", "Jakarta", LocalDate.of(1990, 1, 1), "AKTIF", null, null,
                         Instant.parse("2024-01-01T00:00:00Z"), Instant.parse("2024-01-01T00:00:00Z")));
 
         byte[] json = serializer.serialize(immutable);
@@ -85,7 +86,7 @@ class RedisCacheSerializationTest {
     @DisplayName("detail null tetap aman diserialisasi")
     void karyawanResponse_tanpaDetail() {
         KaryawanResponse asli = new KaryawanResponse(
-                2, "Siti", null, LocalDate.of(1995, 5, 5), "AKTIF", null,
+                2, "Siti", null, LocalDate.of(1995, 5, 5), "AKTIF", null, null,
                 Instant.parse("2024-02-01T00:00:00Z"),
                 Instant.parse("2024-02-01T00:00:00Z"));
 

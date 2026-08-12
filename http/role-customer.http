@@ -1,0 +1,149 @@
+### ===========================================================================
+### ROLE: CUSTOMER  —  customer1@masesas.test
+###
+### CUSTOMER tidak berasal dari tabel karyawan_role. Peran ini melekat pada
+### tipe principal di AppUserDetailsService.findCustomer(), karena customer
+### bukan karyawan dan tidak punya baris karyawan_role sama sekali.
+###
+### Akibatnya idKaryawan pada principal bernilai null, sehingga klausa
+### "#idKaryawan == authentication.principal.idKaryawan" di A01SafeController
+### tidak pernah cocok untuk customer.
+###
+### Login pun lewat endpoint berbeda: /api/auth/customer/login.
+### ===========================================================================
+
+
+### 1. Login
+POST {{baseUrl}}/api/auth/customer/login
+Content-Type: application/json
+
+{
+  "username": "{{emailCustomer}}",
+  "password": "{{demoPassword}}"
+}
+
+> {%
+    client.test("login berhasil", function () {
+        client.assert(response.status === 200, "status " + response.status);
+    });
+    client.test("peran CUSTOMER melekat pada tipe principal", function () {
+        client.assert(response.body.roles.includes("CUSTOMER"), "roles = " + response.body.roles);
+    });
+    client.test("tipe principal CUSTOMER", function () {
+        client.assert(response.body.tipe === "CUSTOMER", "tipe " + response.body.tipe);
+    });
+    client.global.set("token", response.body.token);
+
+    const sekarang = new Date();
+    const periode = sekarang.getFullYear() + "-"
+        + String(sekarang.getMonth() + 1).padStart(2, "0") + "-01";
+    client.global.set("periode", periode);
+%}
+
+
+### 2. Login lewat endpoint karyawan — 401 (akun customer bukan karyawan)
+POST {{baseUrl}}/api/auth/karyawan/login
+Content-Type: application/json
+
+{
+  "username": "{{emailCustomer}}",
+  "password": "{{demoPassword}}"
+}
+
+> {% client.test("401", function () { client.assert(response.status === 401, "status " + response.status); }); %}
+
+
+### ---------------------------------------------------------------------------
+### 3. Tier "cukup login" — endpoint tanpa @PreAuthorize
+###
+### Catatan: endpoint di bawah ini terbuka untuk SIAPA PUN yang punya token,
+### termasuk customer. Itu memang konsekuensi anyRequest().authenticated()
+### tanpa @PreAuthorize — bukan bug pada RBAC, tetapi patut ditinjau.
+### ---------------------------------------------------------------------------
+
+### 3.1 GET /api/karyawan2 — 200
+GET {{baseUrl}}/api/karyawan2
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 3.2 GET /api/sp/karyawan/statistik/total — lolos otorisasi (butuh stored procedure terpasang)
+GET {{baseUrl}}/api/sp/karyawan/statistik/total?status=AKTIF
+Authorization: Bearer {{token}}
+
+> {%
+    client.test("bukan 401/403", function () {
+        client.assert(response.status !== 401 && response.status !== 403, "status " + response.status);
+    });
+%}
+
+### ---------------------------------------------------------------------------
+### 4. Akses yang DIIZINKAN untuk CUSTOMER
+### ---------------------------------------------------------------------------
+
+### 4.1 GET /api/customer/me — 200 (satu-satunya endpoint khusus CUSTOMER)
+GET {{baseUrl}}/api/customer/me
+Authorization: Bearer {{token}}
+
+> {%
+    client.test("200", function () { client.assert(response.status === 200, "status " + response.status); });
+    client.test("mengembalikan profil sendiri", function () {
+        client.assert(response.body.email !== undefined, "body = " + JSON.stringify(response.body));
+    });
+%}
+
+
+### ---------------------------------------------------------------------------
+### 5. Akses yang DITOLAK untuk CUSTOMER
+### ---------------------------------------------------------------------------
+
+### 5.1 GET /api/karyawan — 403
+GET {{baseUrl}}/api/karyawan?page=0&size=5
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 5.2 GET /api/karyawan/{id} — 403
+GET {{baseUrl}}/api/karyawan/{{idAdmin}}
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 5.3 GET /api/karyawan/all — 403
+GET {{baseUrl}}/api/karyawan/all
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 5.4 POST /api/karyawan — 403
+POST {{baseUrl}}/api/karyawan
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nama": "Uji RBAC Customer",
+  "alamat": "Jalan Uji 1",
+  "dob": "1990-01-01",
+  "status": "AKTIF"
+}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 5.5 DELETE /api/karyawan/{id} — 403
+DELETE {{baseUrl}}/api/karyawan/{{idAdmin}}
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 5.6 GET /api/payroll — 403
+GET {{baseUrl}}/api/payroll?page=0&size=5
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 5.7 GET /api/payroll/rekap — 403
+GET {{baseUrl}}/api/payroll/rekap?periode={{periode}}
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+

@@ -3,6 +3,7 @@ package com.masesas.exercises.demo1.config.prop;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
+import org.springframework.util.unit.DataSize;
 
 import java.time.Duration;
 import java.util.List;
@@ -14,13 +15,14 @@ public class AppConfigProperties {
 
     private Security security;
     private Redis redis;
+    private DummyJson dummyJson;
+    private Image image;
 
     @Data
     public static class Security {
         private String password;
         private String jwtSecret;
         private Long jwtTtlMinutes;
-        private Integer rateLimitPerMinute;
         private String cryptoKey;
         private List<String> corsAllowedOrigins;
     }
@@ -37,5 +39,18 @@ public class AppConfigProperties {
         private Duration lettucePoolMaxWait;
         private Integer lettucePoolMaxIdle;
         private Integer lettucePoolMinIdle;
+    }
+
+    @Data
+    public static class DummyJson {
+        private String baseUrl;
+        private Duration connectTimeout;
+        private Duration readTimeout;
+    }
+
+    @Data
+    public static class Image {
+        private String baseDir;
+        private DataSize maxSize;
     }
 }

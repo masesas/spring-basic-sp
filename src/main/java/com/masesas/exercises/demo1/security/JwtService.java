@@ -19,9 +19,13 @@ public class JwtService {
     private final SecretKey key;
     private final Duration ttl;
 
+    @Value("${app.security.jwt-secret}")
+    private String secret;
+
     public JwtService(
             @Value("${app.security.jwt-secret}") String secret,
-            @Value("${app.security.jwt-ttl-minutes}") long ttlMinutes) {
+            @Value("${app.security.jwt-ttl-minutes}") long ttlMinutes
+    ) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.ttl = Duration.ofMinutes(ttlMinutes);
     }

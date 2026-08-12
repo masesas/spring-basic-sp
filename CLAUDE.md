@@ -59,7 +59,7 @@ File `.java` tidak boleh berisi komentar — tidak `//`, tidak `/* */`, tidak Ja
 
 - Kode harus jelas lewat penamaan, bukan lewat penjelasan.
 - Kalau sebuah baris butuh komentar untuk dimengerti, ganti nama variabel/method atau pecah methodnya.
-- Penjelasan konteks ditulis di file markdown (`TOP10-OWASP.md`, `IMPLEMENTATION-PLAN.md`), bukan di dalam kode.
+- Penjelasan konteks ditulis di file markdown, bukan di dalam kode.
 - Pengecualian: komentar di `application.properties` dan file `.sql` boleh, itu bukan baris kode Java.
 
 ---
@@ -92,8 +92,6 @@ security/       JWT, user details, login attempt
 service/        interface service
 service/impl/   implementasi service
 exception/      exception & handler
-owasp/vuln/     versi RENTAN (dipagari @Profile("owasp-demo"))
-owasp/safe/     versi AMAN
 ```
 
 Letakkan file baru di package yang sudah ada. Jangan bikin package baru kecuali memang tidak ada yang cocok.
@@ -103,11 +101,8 @@ Letakkan file baru di package yang sudah ada. Jangan bikin package baru kecuali 
 ```bash
 ./mvnw clean compile          # kompilasi
 ./mvnw test                   # semua test
-./mvnw test -Dtest=A07AuthTest   # satu test
+./mvnw test -Dtest=RbacGuestTest  # satu test
 ./mvnw spring-boot:run        # jalankan aplikasi
-
-# menyalakan endpoint rentan — HANYA di komputer sendiri
-./mvnw spring-boot:run -Dspring-boot.run.profiles=owasp-demo
 ```
 
 ## Konvensi Kode
@@ -123,13 +118,12 @@ Letakkan file baru di package yang sudah ada. Jangan bikin package baru kecuali 
 
 - Setiap perubahan logika wajib disertai test dan `./mvnw test` harus hijau sebelum dianggap selesai.
 - Bug fix wajib disertai test yang mereproduksi bug tersebut.
-- Test OWASP menguji dua sisi: eksploit **berhasil** di endpoint `vuln`, dan **gagal** di endpoint `safe`.
 - Test diletakkan mengikuti package kode yang diuji.
 
 ## Keamanan
 
-- Package `owasp/vuln` berisi kerentanan sungguhan. Selalu pagari dengan `@Profile("owasp-demo")`. Jangan pernah deploy dengan profil ini menyala.
-- Jangan menambah kredensial baru ke source code. Kredensial yang saat ini masih ada di `application.properties` akan dipindahkan ke `.env` pada tahap A05.
+- Jangan menambah kredensial baru ke source code. Semua kredensial dibaca dari `.env` lewat placeholder di `application.properties`.
+- `nik` dan `npwp` di `detail_karyawan` terenkripsi di database lewat `security/CryptoConverter`. Jangan melepas `@Convert` tanpa migrasi dekripsi lebih dulu.
 - Pesan error yang dikirim ke client tidak boleh membocorkan stack trace atau detail internal.
 
 ## Git
@@ -140,5 +134,5 @@ Commit dan push hanya kalau diminta.
 
 ## Dokumen Terkait
 
-- [TOP10-OWASP.md](./TOP10-OWASP.md) — penjelasan tiap kategori OWASP dan peta lokasi implementasinya
-- [IMPLEMENTATION-PLAN.md](./IMPLEMENTATION-PLAN.md) — rencana pengerjaan bertahap
+- [http/README.md](./http/README.md) — matriks akses per peran dan berkas test HTTP
+- Materi OWASP Top 10 sudah pindah ke proyek terpisah `top10-owasp`.

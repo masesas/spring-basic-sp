@@ -1,20 +1,20 @@
 package com.masesas.exercises.demo1.config;
 
-import com.masesas.exercises.demo1.owasp.safe.RateLimitFilter;
 import com.masesas.exercises.demo1.security.AppUser;
+import com.masesas.exercises.demo1.security.AppUserDetailsService;
 import com.masesas.exercises.demo1.security.JwtAuthFilter;
+import com.masesas.exercises.demo1.security.UnauthorizedHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -24,29 +24,32 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Konfigurasi keamanan aplikasi.
- *
- * <p>Tanpa bean {@link SecurityFilterChain} ini, Spring Security memakai pengaturan bawaannya
- * yang meminta login basic-auth di setiap request (semua request dibalas 401).
- *
- * <p>Sejak A01 aturannya per-endpoint: tanpa token dibalas 401, token sah tapi peran
- * kurang dibalas 403. Yang tetap terbuka hanya endpoint login dan package demo
- * {@code /api/vuln/**} yang memang sengaja dibiarkan rentan.
- */
 @Configuration
-@EnableMethodSecurity
 public class SecurityConfig {
 
-    private final List<String> allowedOrigins;
+    public static final List<String> WHITELIST_ENDPOINTS = List.of(
+            "/api/auth/**",
+            "/api/rolemap/**"
+    );
 
-    public SecurityConfig(@Value("${app.security.cors-allowed-origins}") List<String> allowedOrigins) {
-        this.allowedOrigins = List.copyOf(allowedOrigins);
-    }
+    public static final List<String> CHILDREN_ROLE = List.of(
+            "ADMIN",
+            "MANAGER",
+            "MARKETING",
+            "SALES",
+            "HR",
+            "KARYAWAN",
+            AppUserDetailsService.ROLE_CUSTOMER
+    );
+
+    @Value("${app.security.cors-allowed-origins}")
+    private List<String> allowedOrigins;
 
     @Bean
     SecurityFilterChain securityFilterChain(
-            HttpSecurity http, JwtAuthFilter jwtAuthFilter, RateLimitFilter rateLimitFilter) throws Exception {
+            HttpSecurity http,
+            JwtAuthFilter jwtAuthFilter,
+            UnauthorizedHandler unauthorizedHandler) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -60,21 +63,26 @@ public class SecurityConfig {
                                 .maxAgeInSeconds(31536000))
                         .frameOptions(frame -> frame.deny()))
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/api/safe/login").permitAll()
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/vuln/**").permitAll()
+                        .requestMatchers(WHITELIST_ENDPOINTS.toArray(String[]::new)).permitAll()
                         .anyRequest().authenticated()
                 )
                 .anonymous(anonymous -> anonymous
                         .principal(AppUser.PRINCIPAL_GUEST)
                         .authorities(AppUser.ROLE_GUEST))
                 .exceptionHandling(handling -> handling
-                        .authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+                        .authenticationEntryPoint(unauthorizedHandler))
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .build();
+    }
+
+    @Bean
+    RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.withDefaultRolePrefix()
+                .role(AppUser.ROLE_SUPERADMIN)
+                .implies(CHILDREN_ROLE.toArray(String[]::new))
                 .build();
     }
 

@@ -1,0 +1,183 @@
+### ===========================================================================
+### DUA PERAN SEKALIGUS: MANAGER + SALES  —  manager.sales@masesas.test (id 5)
+###
+### karyawan_role menyimpan pasangan (id_karyawan, id_role), jadi satu karyawan
+### boleh punya lebih dari satu baris. AppUserDetailsService.toAppUser()
+### mengumpulkan semuanya menjadi List<String> roles, lalu AppUser.getAuthorities()
+### memberi prefix ROLE_ pada tiap elemen.
+###
+### Hasilnya gabungan, bukan irisan: pemilik dua peran boleh melakukan apa pun
+### yang boleh dilakukan salah satu perannya. Karena SALES hanya menambah hak
+### baca yang sudah dimiliki MANAGER, akun ini efektif setara MANAGER.
+###
+### Bagian 5 membersihkan data yang dibuat berkas ini memakai token ADMIN.
+### ===========================================================================
+
+
+### 1. Login — dua peran terbaca sekaligus
+POST {{baseUrl}}/api/auth/karyawan/login
+Content-Type: application/json
+
+{
+  "username": "{{emailManagerSales}}",
+  "password": "{{demoPassword}}"
+}
+
+> {%
+    client.test("login berhasil", function () {
+        client.assert(response.status === 200, "status " + response.status);
+    });
+    client.test("dua peran terbaca dari karyawan_role", function () {
+        client.assert(response.body.roles.includes("MANAGER") && response.body.roles.includes("SALES"),
+            "roles = " + response.body.roles);
+    });
+    client.global.set("token", response.body.token);
+
+    const sekarang = new Date();
+    const periode = sekarang.getFullYear() + "-"
+        + String(sekarang.getMonth() + 1).padStart(2, "0") + "-01";
+    client.global.set("periode", periode);
+%}
+
+
+### ---------------------------------------------------------------------------
+### 2. Hak yang datang dari SALES (dan juga dimiliki MANAGER)
+### ---------------------------------------------------------------------------
+
+### 2.1 GET /api/karyawan — 200
+GET {{baseUrl}}/api/karyawan?page=0&size=5
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 2.2 GET /api/karyawan/all — 200
+GET {{baseUrl}}/api/karyawan/all
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+
+### ---------------------------------------------------------------------------
+### 3. Hak yang HANYA datang dari MANAGER
+###
+### Inilah bukti gabungan peran: akun ber-SALES saja membalas 403 di sini.
+### ---------------------------------------------------------------------------
+
+### 3.1 POST /api/karyawan — 201
+POST {{baseUrl}}/api/karyawan
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nama": "Uji RBAC Dua Peran",
+  "alamat": "Jalan Uji 1",
+  "dob": "1990-01-01",
+  "status": "AKTIF"
+}
+
+> {%
+    client.test("201", function () { client.assert(response.status === 201, "status " + response.status); });
+    client.global.set("idBaru", response.body.id);
+%}
+
+### 3.2 PUT /api/karyawan/{id} — 200
+PUT {{baseUrl}}/api/karyawan/{{idBaru}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nama": "Uji RBAC Dua Peran Diubah",
+  "alamat": "Jalan Uji 2",
+  "dob": "1990-01-01",
+  "status": "AKTIF"
+}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 3.3 PUT /api/karyawan/{id}/detail — 200
+PUT {{baseUrl}}/api/karyawan/{{idBaru}}/detail
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nik": "3273010101900005",
+  "npwp": "091234567890129"
+}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 3.4 POST /api/payroll — 201
+POST {{baseUrl}}/api/payroll
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "idKaryawan": {{idBaru}},
+  "periode": "{{periode}}",
+  "gajiPokok": 9000000,
+  "tunjangan": 1200000,
+  "potongan": 400000
+}
+
+> {% client.test("201", function () { client.assert(response.status === 201, "status " + response.status); }); %}
+
+### 3.5 GET /api/payroll — 200
+GET {{baseUrl}}/api/payroll?page=0&size=5
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### ---------------------------------------------------------------------------
+### 4. Tetap DITOLAK — dua peran tidak menghasilkan hak ketiga
+### ---------------------------------------------------------------------------
+
+### 4.1 DELETE /api/karyawan/{id} — 403 (hanya ADMIN)
+DELETE {{baseUrl}}/api/karyawan/{{idBaru}}
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 4.2 DELETE /api/payroll/{idKaryawan}/{periode} — 403 (hanya ADMIN & HR)
+DELETE {{baseUrl}}/api/payroll/{{idBaru}}/{{periode}}
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 4.3 GET /api/customer/me — 403
+GET {{baseUrl}}/api/customer/me
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+
+### ---------------------------------------------------------------------------
+### 5. Pembersihan — memakai token ADMIN
+### ---------------------------------------------------------------------------
+
+### 5.1 Login sebagai ADMIN
+POST {{baseUrl}}/api/auth/karyawan/login
+Content-Type: application/json
+
+{
+  "username": "{{emailAdmin}}",
+  "password": "{{demoPassword}}"
+}
+
+> {%
+    client.test("login admin berhasil", function () {
+        client.assert(response.status === 200, "status " + response.status);
+    });
+    client.global.set("tokenAdmin", response.body.token);
+%}
+
+### 5.2 Hapus payroll
+DELETE {{baseUrl}}/api/payroll/{{idBaru}}/{{periode}}
+Authorization: Bearer {{tokenAdmin}}
+
+> {% client.test("204", function () { client.assert(response.status === 204, "status " + response.status); }); %}
+
+### 5.3 Hapus karyawan
+DELETE {{baseUrl}}/api/karyawan/{{idBaru}}
+Authorization: Bearer {{tokenAdmin}}
+
+> {% client.test("204", function () { client.assert(response.status === 204, "status " + response.status); }); %}

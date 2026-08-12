@@ -3,7 +3,6 @@ package com.masesas.exercises.demo1.config;
 import com.masesas.exercises.demo1.security.AppUser;
 import com.masesas.exercises.demo1.security.AppUserDetailsService;
 import com.masesas.exercises.demo1.security.JwtService;
-import com.masesas.exercises.demo1.owasp.safe.RateLimitFilter;
 import com.masesas.exercises.demo1.security.LoginAttemptService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,13 +21,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/**
- * Menjaga aturan otorisasi di SecurityConfig setelah A01 diterapkan.
- *
- * <p>Sebelum A01 kelas ini membuktikan kebalikannya — bahwa semua endpoint terbuka
- * tanpa login. Premis itu sengaja dibalik: sekarang endpoint bisnis menuntut token,
- * dan yang tetap terbuka hanyalah endpoint login serta package demo /api/vuln.
- */
 @SpringBootTest
 @AutoConfigureMockMvc
 class SecurityWhitelistTest {
@@ -45,23 +37,12 @@ class SecurityWhitelistTest {
     @Autowired
     private LoginAttemptService loginAttempts;
 
-    @Autowired
-    private RateLimitFilter rateLimitFilter;
-
     @Value("${app.security.password}")
     private String password;
 
-    /**
-     * Dua sumber state hidup di luar proses test ini dan bocor antar kelas test:
-     * penghitung kegagalan login ada di Redis bersama, dan kuota rate limit ada di
-     * memori bean filter yang dipakai ulang seluruh kelas dalam satu context.
-     * Tanpa reset ini, kelas lain yang sengaja mengunci akun "hr@masesas.test" atau menghabiskan
-     * kuota login membuat test di sini gagal dengan 423 atau 429.
-     */
     @BeforeEach
     void bersihkanKuncianLogin() {
         loginAttempts.reset("hr@masesas.test");
-        rateLimitFilter.bersihkan();
     }
 
     @Test
@@ -82,7 +63,7 @@ class SecurityWhitelistTest {
     @Test
     @DisplayName("endpoint login tetap terbuka tanpa token")
     void login_tetapTerbuka() throws Exception {
-        mockMvc.perform(post("/api/safe/login")
+        mockMvc.perform(post("/api/auth/karyawan/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"hr@masesas.test\",\"password\":\"" + password + "\"}"))
                 .andExpect(status().isOk());

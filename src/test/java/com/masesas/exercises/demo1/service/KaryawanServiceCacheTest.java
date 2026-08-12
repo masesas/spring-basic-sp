@@ -183,6 +183,11 @@ class KaryawanServiceCacheTest {
         }
 
         @Bean
+        ImageStorageService imageStorageService() {
+            return mock(ImageStorageService.class);
+        }
+
+        @Bean
         JdbcTemplate jdbcTemplate() {
             return mock(JdbcTemplate.class);
         }
@@ -192,9 +197,10 @@ class KaryawanServiceCacheTest {
                                         RekeningRepository rekeningRepository,
                                         KaryawanTrainingRepository karyawanTrainingRepository,
                                         DetailKaryawanWriter detailKaryawanWriter,
+                                        ImageStorageService imageStorageService,
                                         JdbcTemplate jdbcTemplate) {
             return new KaryawanServiceImpl(karyawanRepository, rekeningRepository,
-                    karyawanTrainingRepository, detailKaryawanWriter, jdbcTemplate);
+                    karyawanTrainingRepository, detailKaryawanWriter, imageStorageService, jdbcTemplate);
         }
     }
 }

@@ -17,7 +17,7 @@
 --
 --  Berkas ini menggantikan tiga akun demo yang sebelumnya di-hardcode di
 --  AppUserDetailsService (admin, hr, karyawan) dengan akun database sungguhan.
---  Jalankan SEBELUM ./mvnw test — test OWASP sekarang login lewat akun ini.
+--  Jalankan SEBELUM ./mvnw test — test RBAC login lewat akun ini.
 --
 --  Aman dijalankan berulang kali: seluruh INSERT memakai ON CONFLICT DO NOTHING
 --  dan seluruh UPDATE menulis nilai yang sama bila diulang.

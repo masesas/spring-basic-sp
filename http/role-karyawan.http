@@ -1,0 +1,184 @@
+### ===========================================================================
+### ROLE: KARYAWAN  —  karyawan@masesas.test (karyawan id 8)
+###
+### Peran baca-saja atas data karyawan. Ikut di @PreAuthorize kelas
+### KaryawanController, tetapi tidak di satu pun @PreAuthorize method yang
+### mengubah data, dan tidak di PayrollController sama sekali.
+###
+### Berkas ini tidak membuat maupun mengubah data apa pun.
+### ===========================================================================
+
+
+### 1. Login
+POST {{baseUrl}}/api/auth/karyawan/login
+Content-Type: application/json
+
+{
+  "username": "{{emailKaryawan}}",
+  "password": "{{demoPassword}}"
+}
+
+> {%
+    client.test("login berhasil", function () {
+        client.assert(response.status === 200, "status " + response.status);
+    });
+    client.test("peran KARYAWAN datang dari database", function () {
+        client.assert(response.body.roles.includes("KARYAWAN"), "roles = " + response.body.roles);
+    });
+    client.global.set("token", response.body.token);
+
+    const sekarang = new Date();
+    const periode = sekarang.getFullYear() + "-"
+        + String(sekarang.getMonth() + 1).padStart(2, "0") + "-01";
+    client.global.set("periode", periode);
+%}
+
+
+### ---------------------------------------------------------------------------
+### 2. Tier "cukup login" — endpoint tanpa @PreAuthorize
+### ---------------------------------------------------------------------------
+
+### 2.1 GET /api/karyawan2 — 200
+GET {{baseUrl}}/api/karyawan2
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 2.2 GET /api/karyawan2/{id} — 200
+GET {{baseUrl}}/api/karyawan2/{{idKaryawan}}
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 2.3 GET /api/sp/karyawan/statistik/total — lolos otorisasi (butuh stored procedure terpasang)
+GET {{baseUrl}}/api/sp/karyawan/statistik/total?status=AKTIF
+Authorization: Bearer {{token}}
+
+> {%
+    client.test("bukan 401/403", function () {
+        client.assert(response.status !== 401 && response.status !== 403, "status " + response.status);
+    });
+%}
+
+### ---------------------------------------------------------------------------
+### 3. Akses yang DIIZINKAN untuk KARYAWAN — baca data karyawan
+### ---------------------------------------------------------------------------
+
+### 3.1 GET /api/karyawan — 200
+GET {{baseUrl}}/api/karyawan?page=0&size=5
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 3.2 GET /api/karyawan/{id} — 200
+GET {{baseUrl}}/api/karyawan/{{idKaryawan}}
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 3.3 GET /api/karyawan/page — 403 (hanya ADMIN, satu-satunya GET karyawan yang dibatasi)
+GET {{baseUrl}}/api/karyawan/page?page=0&size=5
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 3.4 GET /api/karyawan/search — 200
+GET {{baseUrl}}/api/karyawan/search?nama=Budi&page=0&size=5
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 3.5 GET /api/karyawan/all — 200
+GET {{baseUrl}}/api/karyawan/all
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### ---------------------------------------------------------------------------
+### 4. Akses yang DITOLAK untuk KARYAWAN
+### ---------------------------------------------------------------------------
+
+### 4.1 POST /api/karyawan — 403
+POST {{baseUrl}}/api/karyawan
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nama": "Uji RBAC Karyawan",
+  "alamat": "Jalan Uji 1",
+  "dob": "1990-01-01",
+  "status": "AKTIF"
+}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 4.2 PUT /api/karyawan/{id} — 403
+PUT {{baseUrl}}/api/karyawan/{{idKaryawan}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nama": "Uji RBAC Karyawan",
+  "alamat": "Jalan Uji 2",
+  "dob": "1990-01-01",
+  "status": "AKTIF"
+}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 4.3 PUT /api/karyawan/{id}/detail — 403
+PUT {{baseUrl}}/api/karyawan/{{idKaryawan}}/detail
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nik": "3273010101900008",
+  "npwp": "091234567890128"
+}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 4.4 DELETE /api/karyawan/{id}/detail — 403
+DELETE {{baseUrl}}/api/karyawan/{{idKaryawan}}/detail
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 4.5 DELETE /api/karyawan/{id} — 403
+DELETE {{baseUrl}}/api/karyawan/{{idKaryawan}}
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 4.6 GET /api/payroll — 403 (KARYAWAN tidak ada di PayrollController)
+GET {{baseUrl}}/api/payroll?page=0&size=5
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 4.7 GET /api/payroll/rekap — 403
+GET {{baseUrl}}/api/payroll/rekap?periode={{periode}}
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 4.8 POST /api/payroll — 403
+POST {{baseUrl}}/api/payroll
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "idKaryawan": {{idKaryawan}},
+  "periode": "{{periode}}",
+  "gajiPokok": 5000000,
+  "tunjangan": 0,
+  "potongan": 0
+}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 4.9 GET /api/customer/me — 403
+GET {{baseUrl}}/api/customer/me
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}

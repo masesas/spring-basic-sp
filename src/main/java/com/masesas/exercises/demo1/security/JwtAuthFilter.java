@@ -21,9 +21,11 @@ import java.io.IOException;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private static final String PREFIX = "Bearer ";
+    private static final String PESAN_TOKEN_TIDAK_VALID = "Token tidak valid";
 
     private final JwtService jwtService;
     private final AppUserDetailsService userDetailsService;
+    private final UnauthorizedHandler unauthorizedHandler;
 
     @Override
     protected void doFilterInternal(
@@ -44,7 +46,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (JwtException | UsernameNotFoundException | IllegalArgumentException ex) {
             SecurityContextHolder.clearContext();
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token tidak valid");
+            unauthorizedHandler.response(response, PESAN_TOKEN_TIDAK_VALID);
             return;
         }
 

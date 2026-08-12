@@ -6,6 +6,7 @@ import com.masesas.exercises.demo1.dto.KaryawanResponse;
 import com.masesas.exercises.demo1.dto.UpdateKaryawanRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -31,4 +32,6 @@ public interface KaryawanService {
     KaryawanResponse upsertDetail(Integer karyawanId, DetailKaryawanRequest request);
 
     KaryawanResponse removeDetail(Integer karyawanId);
+
+    KaryawanResponse uploadAvatar(Integer id, MultipartFile file);
 }

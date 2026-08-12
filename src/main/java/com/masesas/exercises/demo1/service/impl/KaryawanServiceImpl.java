@@ -10,6 +10,7 @@ import com.masesas.exercises.demo1.exception.ResourceNotFoundException;
 import com.masesas.exercises.demo1.repository.KaryawanRepository;
 import com.masesas.exercises.demo1.repository.KaryawanTrainingRepository;
 import com.masesas.exercises.demo1.repository.RekeningRepository;
+import com.masesas.exercises.demo1.service.ImageStorageService;
 import com.masesas.exercises.demo1.service.KaryawanService;
 import com.masesas.exercises.demo1.service.support.DetailKaryawanWriter;
 import com.masesas.exercises.demo1.service.support.Validators;
@@ -21,6 +22,7 @@ import org.springframework.data.domain.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -44,10 +46,13 @@ public class KaryawanServiceImpl implements KaryawanService {
      */
     private static final String CACHE_KARYAWAN_ALL = "karyawan-all";
 
+    private static final String FOLDER_AVATAR = "karyawan";
+
     private final KaryawanRepository karyawanRepository;
     private final RekeningRepository rekeningRepository;
     private final KaryawanTrainingRepository karyawanTrainingRepository;
     private final DetailKaryawanWriter detailKaryawanWriter;
+    private final ImageStorageService imageStorageService;
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -106,7 +111,9 @@ public class KaryawanServiceImpl implements KaryawanService {
     @Override
     @Cacheable(cacheNames = CACHE_KARYAWAN, key = "#id")
     public KaryawanResponse findById(Integer id) {
-        return KaryawanResponse.from(requireActive(id));
+        var karyawan = karyawanRepository.findByIdAndDeletedDateIsNull(id)
+                .orElseThrow(() -> new ResourceNotFoundException(RESOURCE, id));
+        return KaryawanResponse.from(karyawan);
     }
 
     @Override
@@ -215,6 +222,21 @@ public class KaryawanServiceImpl implements KaryawanService {
         karyawan.setDetailKaryawan(null);
         karyawan.setUpdatedDate(now);
         return KaryawanResponse.from(karyawanRepository.save(karyawan));
+    }
+
+    @Override
+    @Transactional
+    public KaryawanResponse uploadAvatar(Integer id, MultipartFile file) {
+        Karyawan karyawan = requireActive(id);
+        String avatarLama = karyawan.getAvatar();
+
+        String avatarPath = imageStorageService.simpan(file, "karyawan");
+        karyawan.setAvatar(avatarPath);
+        karyawan.setUpdatedDate(Instant.now());
+        KaryawanResponse response = KaryawanResponse.from(karyawanRepository.save(karyawan));
+
+        imageStorageService.hapus(avatarLama);
+        return response;
     }
 
     private Karyawan requireActive(Integer id) {

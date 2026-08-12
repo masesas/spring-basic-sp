@@ -1,10 +1,14 @@
 HELP.md
 target/
 
+### Berkas unggahan pengguna (app.image.base-dir) ###
+/resources/
+
 ### Kredensial — jangan pernah di-commit ###
 .env
 .env.local
 !.env.example
+http/http-client.private.env.json
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/

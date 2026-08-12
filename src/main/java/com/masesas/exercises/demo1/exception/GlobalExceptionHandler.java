@@ -23,6 +23,8 @@ import java.util.stream.Collectors;
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
+    public static final String PESAN_AUTENTIKASI_DIPERLUKAN = "Autentikasi diperlukan";
+
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ResourceNotFoundException.class)
@@ -80,7 +82,12 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Map<String, Object>> handleAuthentication(AuthenticationException ex) {
-        return build(HttpStatus.UNAUTHORIZED, "Autentikasi diperlukan");
+        return build(HttpStatus.UNAUTHORIZED, PESAN_AUTENTIKASI_DIPERLUKAN);
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<Map<String, Object>> handleUnauthorized(UnauthorizedException ex) {
+        return build(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)
@@ -93,7 +100,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(status).body(body(status, message));
     }
 
-    private Map<String, Object> body(HttpStatus status, String message) {
+    public static Map<String, Object> body(HttpStatus status, String message) {
         return Map.of(
                 "timestamp", Instant.now().toString(),
                 "status", status.value(),

@@ -1,0 +1,238 @@
+### ===========================================================================
+### ROLE: MANAGER  —  manager@masesas.test (karyawan id 2)
+###
+### Hampir sama dengan ADMIN pada data karyawan dan payroll, kecuali tiga hal:
+###   * DELETE /api/karyawan/{id}            -> 403 (khusus ADMIN)
+###   * DELETE /api/payroll/{id}/{periode}   -> 403 (khusus ADMIN & HR)
+###
+### Bagian 5 membersihkan data yang dibuat berkas ini memakai token ADMIN,
+### karena MANAGER sendiri tidak punya hak hapus.
+### ===========================================================================
+
+
+### 1. Login
+POST {{baseUrl}}/api/auth/karyawan/login
+Content-Type: application/json
+
+{
+  "username": "{{emailManager}}",
+  "password": "{{demoPassword}}"
+}
+
+> {%
+    client.test("login berhasil", function () {
+        client.assert(response.status === 200, "status " + response.status);
+    });
+    client.test("peran MANAGER datang dari database", function () {
+        client.assert(response.body.roles.includes("MANAGER"), "roles = " + response.body.roles);
+    });
+    client.global.set("token", response.body.token);
+
+    const sekarang = new Date();
+    const periode = sekarang.getFullYear() + "-"
+        + String(sekarang.getMonth() + 1).padStart(2, "0") + "-01";
+    client.global.set("periode", periode);
+%}
+
+
+### ---------------------------------------------------------------------------
+### 2. Tier "cukup login" — endpoint tanpa @PreAuthorize
+### ---------------------------------------------------------------------------
+
+### 2.1 GET /api/karyawan2 — 200
+GET {{baseUrl}}/api/karyawan2
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 2.2 GET /api/sp/karyawan/statistik/total — lolos otorisasi (butuh stored procedure terpasang)
+GET {{baseUrl}}/api/sp/karyawan/statistik/total?status=AKTIF
+Authorization: Bearer {{token}}
+
+> {%
+    client.test("bukan 401/403", function () {
+        client.assert(response.status !== 401 && response.status !== 403, "status " + response.status);
+    });
+%}
+
+### ---------------------------------------------------------------------------
+### 3. Akses yang DIIZINKAN untuk MANAGER
+### ---------------------------------------------------------------------------
+
+### 3.1 GET /api/karyawan — 200
+GET {{baseUrl}}/api/karyawan?page=0&size=5
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 3.2 GET /api/karyawan/{id} — 200
+GET {{baseUrl}}/api/karyawan/{{idManager}}
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 3.3 GET /api/karyawan/all — 200
+GET {{baseUrl}}/api/karyawan/all
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 3.4 POST /api/karyawan — 201
+POST {{baseUrl}}/api/karyawan
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nama": "Uji RBAC Manager",
+  "alamat": "Jalan Uji 1",
+  "dob": "1990-01-01",
+  "status": "AKTIF"
+}
+
+> {%
+    client.test("201", function () { client.assert(response.status === 201, "status " + response.status); });
+    client.global.set("idBaru", response.body.id);
+%}
+
+### 3.5 PUT /api/karyawan/{id} — 200
+PUT {{baseUrl}}/api/karyawan/{{idBaru}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nama": "Uji RBAC Manager Diubah",
+  "alamat": "Jalan Uji 2",
+  "dob": "1990-01-01",
+  "status": "AKTIF"
+}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 3.6 PUT /api/karyawan/{id}/detail — 200
+PUT {{baseUrl}}/api/karyawan/{{idBaru}}/detail
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nik": "3273010101900002",
+  "npwp": "091234567890124"
+}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 3.7 DELETE /api/karyawan/{id}/detail — 200
+DELETE {{baseUrl}}/api/karyawan/{{idBaru}}/detail
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 3.8 POST /api/payroll — 201
+POST {{baseUrl}}/api/payroll
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "idKaryawan": {{idBaru}},
+  "periode": "{{periode}}",
+  "gajiPokok": 7000000,
+  "tunjangan": 800000,
+  "potongan": 300000
+}
+
+> {%
+    client.test("201", function () { client.assert(response.status === 201, "status " + response.status); });
+    client.global.set("versiPayroll", response.body.version);
+%}
+
+### 3.9 GET /api/payroll — 200
+GET {{baseUrl}}/api/payroll?page=0&size=5
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 3.10 GET /api/payroll/karyawan/{idKaryawan} — 200
+GET {{baseUrl}}/api/payroll/karyawan/{{idBaru}}
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 3.11 GET /api/payroll/rekap — 200
+GET {{baseUrl}}/api/payroll/rekap?periode={{periode}}
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 3.12 PUT /api/payroll/{idKaryawan}/{periode} — 200
+PUT {{baseUrl}}/api/payroll/{{idBaru}}/{{periode}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "version": {{versiPayroll}},
+  "gajiPokok": 7500000,
+  "tunjangan": 800000,
+  "potongan": 300000
+}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 3.13 POST /api/payroll/{idKaryawan}/{periode}/approve — 200
+POST {{baseUrl}}/api/payroll/{{idBaru}}/{{periode}}/approve
+Authorization: Bearer {{token}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### ---------------------------------------------------------------------------
+### 4. Akses yang DITOLAK untuk MANAGER
+### ---------------------------------------------------------------------------
+
+### 4.1 DELETE /api/karyawan/{id} — 403 (hanya ADMIN)
+DELETE {{baseUrl}}/api/karyawan/{{idBaru}}
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 4.2 DELETE /api/payroll/{idKaryawan}/{periode} — 403 (hanya ADMIN & HR)
+DELETE {{baseUrl}}/api/payroll/{{idBaru}}/{{periode}}
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 4.3 GET /api/customer/me — 403
+GET {{baseUrl}}/api/customer/me
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+
+### ---------------------------------------------------------------------------
+### 5. Pembersihan — memakai token ADMIN, bukan bagian dari matriks MANAGER
+### ---------------------------------------------------------------------------
+
+### 5.1 Login sebagai ADMIN
+POST {{baseUrl}}/api/auth/karyawan/login
+Content-Type: application/json
+
+{
+  "username": "{{emailAdmin}}",
+  "password": "{{demoPassword}}"
+}
+
+> {%
+    client.test("login admin berhasil", function () {
+        client.assert(response.status === 200, "status " + response.status);
+    });
+    client.global.set("tokenAdmin", response.body.token);
+%}
+
+### 5.2 Hapus payroll yang dibuat MANAGER
+DELETE {{baseUrl}}/api/payroll/{{idBaru}}/{{periode}}
+Authorization: Bearer {{tokenAdmin}}
+
+> {% client.test("204", function () { client.assert(response.status === 204, "status " + response.status); }); %}
+
+### 5.3 Hapus karyawan yang dibuat MANAGER
+DELETE {{baseUrl}}/api/karyawan/{{idBaru}}
+Authorization: Bearer {{tokenAdmin}}
+
+> {% client.test("204", function () { client.assert(response.status === 204, "status " + response.status); }); %}

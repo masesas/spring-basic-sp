@@ -18,6 +18,7 @@ public class KaryawanResponse {
     private String alamat;
     private LocalDate dob;
     private String status;
+    private String avatar;
     private DetailKaryawanResponse detail;
     private Instant createdDate;
     private Instant updatedDate;
@@ -29,6 +30,7 @@ public class KaryawanResponse {
                 karyawan.getAlamat(),
                 karyawan.getDob(),
                 karyawan.getStatus(),
+                karyawan.getAvatar(),
                 detailDari(karyawan),
                 karyawan.getCreatedDate(),
                 karyawan.getUpdatedDate());

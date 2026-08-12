@@ -1,0 +1,130 @@
+### ===========================================================================
+### GUEST  —  pengunjung anonim, tanpa token
+###
+### GUEST tidak ada di tabel masesas.role dan tidak pernah bisa ada di sana:
+### tidak ada baris karyawan yang bisa ditugasi peran itu. ROLE_GUEST diberikan
+### Spring Security lewat AnonymousConfigurer di SecurityConfig, dan AppUser
+### juga menempelkannya ke setiap pengguna yang sudah login.
+###
+### Karena itu hasRole('GUEST') berarti "siapa pun, login atau tidak" — penanda
+### bahwa sebuah endpoint memang publik, bukan penyaring.
+###
+### Yang perlu dipahami dari berkas ini: anonim bukan authenticated. Aturan
+### anyRequest().authenticated() membalas 401 untuk semua endpoint terlindungi,
+### bukan 403 — bedanya "siapa Anda?" dengan "Anda tidak berhak".
+###
+### Tidak ada request di berkas ini yang memakai header Authorization.
+### ===========================================================================
+
+
+### ---------------------------------------------------------------------------
+### 1. Endpoint publik — terbuka tanpa token
+### ---------------------------------------------------------------------------
+
+### 1.1 POST /api/auth/karyawan/login dengan password salah — 401, bukan 403
+POST {{baseUrl}}/api/auth/karyawan/login
+Content-Type: application/json
+
+{
+  "username": "{{emailAdmin}}",
+  "password": "password-yang-pasti-salah"
+}
+
+> {%
+    client.test("401 dari pemeriksaan kredensial, bukan dari filter", function () {
+        client.assert(response.status === 401, "status " + response.status);
+    });
+%}
+
+### 1.2 POST /api/auth/karyawan/login dengan kredensial benar — 200
+POST {{baseUrl}}/api/auth/karyawan/login
+Content-Type: application/json
+
+{
+  "username": "{{emailAdmin}}",
+  "password": "{{demoPassword}}"
+}
+
+> {%
+    client.test("200", function () { client.assert(response.status === 200, "status " + response.status); });
+    client.test("ROLE_GUEST tidak muncul di daftar peran", function () {
+        client.assert(!response.body.roles.includes("GUEST"),
+            "GUEST tidak boleh ada di karyawan_role, roles = " + response.body.roles);
+    });
+%}
+
+
+### ---------------------------------------------------------------------------
+### 2. Seluruh endpoint terlindungi membalas 401 — bukan 403
+### ---------------------------------------------------------------------------
+
+### 2.1 GET /api/karyawan — 401
+GET {{baseUrl}}/api/karyawan?page=0&size=5
+
+> {% client.test("401", function () { client.assert(response.status === 401, "status " + response.status); }); %}
+
+### 2.2 GET /api/karyawan/{id} — 401
+GET {{baseUrl}}/api/karyawan/{{idAdmin}}
+
+> {% client.test("401", function () { client.assert(response.status === 401, "status " + response.status); }); %}
+
+### 2.3 GET /api/karyawan/all — 401
+GET {{baseUrl}}/api/karyawan/all
+
+> {% client.test("401", function () { client.assert(response.status === 401, "status " + response.status); }); %}
+
+### 2.4 POST /api/karyawan — 401
+POST {{baseUrl}}/api/karyawan
+Content-Type: application/json
+
+{
+  "nama": "Uji RBAC Guest",
+  "alamat": "Jalan Uji 1",
+  "dob": "1990-01-01",
+  "status": "AKTIF"
+}
+
+> {% client.test("401", function () { client.assert(response.status === 401, "status " + response.status); }); %}
+
+### 2.5 DELETE /api/karyawan/{id} — 401
+DELETE {{baseUrl}}/api/karyawan/{{idAdmin}}
+
+> {% client.test("401", function () { client.assert(response.status === 401, "status " + response.status); }); %}
+
+### 2.6 GET /api/payroll — 401
+GET {{baseUrl}}/api/payroll?page=0&size=5
+
+> {% client.test("401", function () { client.assert(response.status === 401, "status " + response.status); }); %}
+
+### 2.7 GET /api/customer/me — 401
+GET {{baseUrl}}/api/customer/me
+
+> {% client.test("401", function () { client.assert(response.status === 401, "status " + response.status); }); %}
+
+### 2.8 GET /api/karyawan2 — 401 (tanpa @PreAuthorize pun tetap butuh token)
+GET {{baseUrl}}/api/karyawan2
+
+> {% client.test("401", function () { client.assert(response.status === 401, "status " + response.status); }); %}
+
+### 2.9 GET /api/sp/karyawan/statistik/total — 401
+GET {{baseUrl}}/api/sp/karyawan/statistik/total?status=AKTIF
+
+> {% client.test("401", function () { client.assert(response.status === 401, "status " + response.status); }); %}
+
+### ---------------------------------------------------------------------------
+### 3. Token rusak dan token kosong — tetap 401
+### ---------------------------------------------------------------------------
+
+### 3.1 Token asal-asalan — 401
+GET {{baseUrl}}/api/karyawan?page=0&size=5
+Authorization: Bearer token.yang.tidak.sah
+
+> {% client.test("401", function () { client.assert(response.status === 401, "status " + response.status); }); %}
+
+### 3.2 Header Authorization tanpa nilai — 401
+GET {{baseUrl}}/api/karyawan?page=0&size=5
+Authorization: Bearer
+
+> {% client.test("401", function () { client.assert(response.status === 401, "status " + response.status); }); %}
+
+

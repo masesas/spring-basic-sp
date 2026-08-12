@@ -22,4 +22,5 @@ public class CustomerController {
     public CustomerResponse profil(@AuthenticationPrincipal AppUser user) {
         return customerService.profil(user.getUsername());
     }
+
 }

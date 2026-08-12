@@ -17,7 +17,6 @@ import tools.jackson.databind.jsontype.PolymorphicTypeValidator;
 import java.time.Duration;
 
 @Configuration
-
 public class RedisConfigOld {
     private static final Duration DEFAULT_TTL = Duration.ofMinutes(10);
 

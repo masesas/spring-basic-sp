@@ -4,6 +4,7 @@ import com.masesas.exercises.demo1.entity.Karyawan;
 import com.masesas.exercises.demo1.repository.CustomerRepository;
 import com.masesas.exercises.demo1.repository.KaryawanRepository;
 import com.masesas.exercises.demo1.repository.KaryawanRoleRepository;
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -16,14 +17,16 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AppUserDetailsService implements UserDetailsService {
 
-    private static final String ROLE_CUSTOMER = "CUSTOMER";
+    public static final String ROLE_CUSTOMER = "CUSTOMER";
 
     private final KaryawanRepository karyawanRepository;
     private final KaryawanRoleRepository karyawanRoleRepository;
     private final CustomerRepository customerRepository;
 
+
+    @NonNull
     @Override
-    public AppUser loadUserByUsername(String username) {
+    public AppUser loadUserByUsername(@NonNull String username) {
         return find(username).orElseThrow(
                 () -> new UsernameNotFoundException("Pengguna tidak dikenal: " + username));
     }

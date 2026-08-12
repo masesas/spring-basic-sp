@@ -4,6 +4,7 @@ import com.masesas.exercises.demo1.dto.AuthResponse;
 import com.masesas.exercises.demo1.dto.CustomerRegisterRequest;
 import com.masesas.exercises.demo1.dto.CustomerResponse;
 import com.masesas.exercises.demo1.dto.LoginRequest;
+import com.masesas.exercises.demo1.exception.UnauthorizedException;
 import com.masesas.exercises.demo1.security.AppUser;
 import com.masesas.exercises.demo1.security.AppUserDetailsService;
 import com.masesas.exercises.demo1.security.JwtService;
@@ -57,7 +58,7 @@ public class AuthController {
 
         if (found.isEmpty() || !passwordEncoder.matches(request.getPassword(), found.get().getPassword())) {
             loginAttempts.recordFailure(request.getUsername());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            throw new UnauthorizedException("Username atau password salah");
         }
 
         loginAttempts.reset(request.getUsername());

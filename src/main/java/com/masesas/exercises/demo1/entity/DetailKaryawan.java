@@ -1,6 +1,6 @@
 package com.masesas.exercises.demo1.entity;
 
-import com.masesas.exercises.demo1.owasp.safe.CryptoConverter;
+import com.masesas.exercises.demo1.security.CryptoConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
