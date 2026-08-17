@@ -44,7 +44,7 @@ public class SecurityConfig {
 
     private static final String CSP_DOCS =
             "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
-                    + "img-src 'self' data:; font-src 'self' data:; connect-src 'self'; "
+                    + "img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://proxy.scalar.com https://api.scalar.com;"
                     + "frame-ancestors 'none'; base-uri 'none'";
 
     public static final List<String> CHILDREN_ROLE = List.of(
