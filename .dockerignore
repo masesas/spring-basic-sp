@@ -1,0 +1,30 @@
+# Hasil build lokal — akan dibangun ulang di dalam image
+target/
+
+# Kredensial. Yang paling penting di berkas ini.
+.env
+.env.*
+!.env.example
+
+# Riwayat dan metadata
+.git
+.gitignore
+.gitattributes
+.github
+.mvn
+mvnw
+mvnw.cmd
+
+# Tidak dibutuhkan runtime
+docs/
+http/
+scripts/
+docker/
+*.md
+*.sql
+dependency-check-suppressions.xml
+.claude/
+.remember/
+.idea/
+.vscode/
+.DS_Store

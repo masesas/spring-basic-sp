@@ -1,0 +1,155 @@
+name: Deploy Production
+
+on:
+  push:
+    branches: [production]
+  workflow_dispatch:
+
+# Dua deploy yang berjalan bersamaan akan saling menimpa tag <ddMMyyyy>-latest
+# dan bisa membuat server menarik image yang bukan dari commit ini.
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  ci:
+    name: Test
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  build-push:
+    name: Build & push image
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Susun tag image
+        id: tag
+        run: |
+          tanggal="$(TZ=Asia/Jakarta date +%d%m%Y)"
+          echo "tag=${tanggal}-latest"                  >> "$GITHUB_OUTPUT"
+          echo "tag_sha=${tanggal}-${GITHUB_SHA:0:7}"   >> "$GITHUB_OUTPUT"
+
+      - name: Siapkan Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login ke GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: |
+            ${{ vars.APP_REGISTRY_PROD }}/${{ vars.APP_IMAGE_NAME_PROD }}:${{ steps.tag.outputs.tag }}
+            ${{ vars.APP_REGISTRY_PROD }}/${{ vars.APP_IMAGE_NAME_PROD }}:${{ steps.tag.outputs.tag_sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy ke server
+    needs: build-push
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Susun berkas env
+        run: scripts/render-env.sh PROD ./keluaran
+        env:
+          APP_IMAGE_TAG: ${{ needs.build-push.outputs.tag }}
+
+          SPRING_PROFILES_ACTIVE_PROD: ${{ vars.SPRING_PROFILES_ACTIVE_PROD }}
+          APP_SERVER_PORT_PROD: ${{ vars.APP_SERVER_PORT_PROD }}
+          APP_HOST_PORT_PROD: ${{ vars.APP_HOST_PORT_PROD }}
+          APP_REGISTRY_PROD: ${{ vars.APP_REGISTRY_PROD }}
+          APP_IMAGE_NAME_PROD: ${{ vars.APP_IMAGE_NAME_PROD }}
+          APP_CONTAINER_NAME_PROD: ${{ vars.APP_CONTAINER_NAME_PROD }}
+          APP_DATA_DIR_PROD: ${{ vars.APP_DATA_DIR_PROD }}
+          APP_IMAGE_BASE_DIR_PROD: ${{ vars.APP_IMAGE_BASE_DIR_PROD }}
+          APP_CORS_ALLOWED_ORIGINS_PROD: ${{ vars.APP_CORS_ALLOWED_ORIGINS_PROD }}
+          APP_REDIS_KEY_PREFIX_PROD: ${{ vars.APP_REDIS_KEY_PREFIX_PROD }}
+          APP_TZ_PROD: ${{ vars.APP_TZ_PROD }}
+          APP_JAVA_TOOL_OPTIONS_PROD: ${{ vars.APP_JAVA_TOOL_OPTIONS_PROD }}
+          DB_SCHEMA_PROD: ${{ vars.DB_SCHEMA_PROD }}
+          DUMMYJSON_BASE_URL_PROD: ${{ vars.DUMMYJSON_BASE_URL_PROD }}
+
+          DB_URL_PROD: ${{ secrets.DB_URL_PROD }}
+          DB_USERNAME_PROD: ${{ secrets.DB_USERNAME_PROD }}
+          DB_PASSWORD_PROD: ${{ secrets.DB_PASSWORD_PROD }}
+          REDIS_HOST_PROD: ${{ secrets.REDIS_HOST_PROD }}
+          REDIS_PORT_PROD: ${{ secrets.REDIS_PORT_PROD }}
+          REDIS_USERNAME_PROD: ${{ secrets.REDIS_USERNAME_PROD }}
+          REDIS_PASSWORD_PROD: ${{ secrets.REDIS_PASSWORD_PROD }}
+          JWT_SECRET_PROD: ${{ secrets.JWT_SECRET_PROD }}
+          CRYPTO_KEY_PROD: ${{ secrets.CRYPTO_KEY_PROD }}
+          DEMO_PASSWORD_PROD: ${{ secrets.DEMO_PASSWORD_PROD }}
+
+      - name: Siapkan kunci SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY_PROD }}
+          SSH_HOST: ${{ secrets.SSH_HOST_PROD }}
+          SSH_PORT: ${{ secrets.SSH_PORT_PROD }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Kirim berkas deploy
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST_PROD }}
+          SSH_PORT: ${{ secrets.SSH_PORT_PROD }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME_PROD }}
+          DEPLOY_DIR: ${{ vars.APP_DEPLOY_DIR_PROD }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_USERNAME@$SSH_HOST" \
+              "mkdir -p '$DEPLOY_DIR'"
+          scp -i ~/.ssh/id_deploy -P "$SSH_PORT" \
+              docker/docker-compose.yml \
+              scripts/deploy.sh \
+              keluaran/.env.deploy \
+              keluaran/.env.app \
+              "$SSH_USERNAME@$SSH_HOST:$DEPLOY_DIR/"
+
+      - name: Jalankan deploy di server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST_PROD }}
+          SSH_PORT: ${{ secrets.SSH_PORT_PROD }}
+          SSH_USERNAME: ${{ secrets.SSH_USERNAME_PROD }}
+          DEPLOY_DIR: ${{ vars.APP_DEPLOY_DIR_PROD }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$SSH_PORT" "$SSH_USERNAME@$SSH_HOST" \
+              "cd '$DEPLOY_DIR' && chmod 600 .env.app .env.deploy && chmod +x deploy.sh && ./deploy.sh"
+
+      - name: Verifikasi dari luar server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST_PROD }}
+          HOST_PORT: ${{ vars.APP_HOST_PORT_PROD }}
+        run: |
+          kode="$(curl -fsS -o /dev/null -w '%{http_code}' --max-time 20 \
+                  "http://$SSH_HOST:$HOST_PORT/api/rolemap")"
+          echo "GET /api/rolemap -> $kode"
+          [ "$kode" = "200" ]
+
+      - name: Hapus kunci SSH
+        if: always()
+        run: rm -f ~/.ssh/id_deploy

@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main, production]
+  workflow_call:
+
+# Test menulis ke PostgreSQL yang dipakai bersama. Dua job test yang berjalan
+# bersamaan akan saling mengacaukan data, jadi dijalankan bergiliran.
+# cancel-in-progress false: job yang sedang jalan dibiarkan selesai supaya
+# tidak meninggalkan data setengah jadi.
+concurrency:
+  group: test-database
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Full test suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Siapkan Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Jalankan seluruh test
+        run: ./mvnw -B clean test
+        env:
+          DB_URL: ${{ secrets.DB_URL_DEV }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME_DEV }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD_DEV }}
+          DB_SCHEMA: ${{ vars.DB_SCHEMA_DEV }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST_DEV }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT_DEV }}
+          REDIS_USERNAME: ${{ secrets.REDIS_USERNAME_DEV }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD_DEV }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET_DEV }}
+          CRYPTO_KEY: ${{ secrets.CRYPTO_KEY_DEV }}
+          DEMO_PASSWORD: ${{ secrets.DEMO_PASSWORD_DEV }}
+          # Prefix khusus CI supaya test tidak menimpa cache container dev
+          # yang sedang melayani permintaan.
+          APP_REDIS_KEY_PREFIX: demo:ci
+          # Dibutuhkan application-local.properties, profile yang diaktifkan
+          # Surefire. Test memakai MockMvc, jadi nilainya tidak pernah dipakai
+          # membuka port — tapi placeholdernya wajib ter-resolve.
+          APP_SERVER_PORT: 8080
+
+      - name: Unggah laporan JaCoCo
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-${{ github.run_number }}
+          path: target/site/jacoco/
+          retention-days: 7
+
+      - name: Unggah laporan Surefire saat gagal
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-${{ github.run_number }}
+          path: target/surefire-reports/
+          retention-days: 7

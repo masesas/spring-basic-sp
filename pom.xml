@@ -167,6 +167,32 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!--
+                        application.properties tidak lagi memuat konfigurasi
+                        database maupun Redis, jadi tidak ada skenario yang
+                        boleh berjalan tanpa profile. `mvn spring-boot:run`
+                        memakai profile local, yang membaca .env.
+                    -->
+                    <profiles>
+                        <profile>local</profile>
+                    </profiles>
+                </configuration>
+            </plugin>
+
+            <!--
+                Alasan yang sama untuk test: profile local diaktifkan di sini,
+                bukan lewat @ActiveProfiles di tiap kelas test. Satu tempat,
+                berlaku untuk `mvn test` di mesin pengembang maupun di CI.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <spring.profiles.active>local</spring.profiles.active>
+                    </systemPropertyVariables>
+                </configuration>
             </plugin>
 
             <!--

@@ -1,0 +1,39 @@
+# ============================================================================
+#  Compose untuk satu service saja: aplikasi.
+#
+#  PostgreSQL dan Redis sengaja TIDAK ada di sini. Keduanya layanan eksternal
+#  yang sudah berjalan dan dipakai bersama oleh dev, prod, dan mesin pengembang.
+#  Menambahkannya di sini akan membuat compose down ikut menghapus data.
+#
+#  Dijalankan oleh scripts/deploy.sh:
+#      docker compose --env-file .env.deploy up -d
+# ============================================================================
+
+services:
+  app:
+    image: ${APP_IMAGE}
+    container_name: ${APP_CONTAINER_NAME}
+    restart: unless-stopped
+
+    env_file:
+      - .env.app
+
+    ports:
+      - "${APP_HOST_PORT}:${APP_CONTAINER_PORT}"
+
+    volumes:
+      # Berkas unggahan (avatar karyawan) hidup di host, bukan di dalam
+      # container, supaya tidak ikut hilang saat image diganti.
+      - ${APP_DATA_DIR}:${APP_IMAGE_BASE_DIR}
+
+    # Lebih lama dari spring.lifecycle.timeout-per-shutdown-phase (20s), supaya
+    # JVM sempat menyelesaikan graceful shutdown sebelum menerima SIGKILL.
+    stop_grace_period: 30s
+
+    mem_limit: 768m
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
