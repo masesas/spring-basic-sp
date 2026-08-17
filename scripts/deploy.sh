@@ -20,16 +20,21 @@ set +a
 echo "==> Image  : $APP_IMAGE"
 echo "==> Container: $APP_CONTAINER_NAME (port host $APP_HOST_PORT)"
 
-# Direktori volume dibuat sekali secara manual dengan pemilik UID 1001 —
-# lihat impl-plan-prasyarat-server.md. Di sini hanya diperiksa.
-if [ ! -d "$APP_DATA_DIR" ]; then
-    echo "deploy: direktori data $APP_DATA_DIR belum ada." >&2
-    echo "        Buat dulu: sudo mkdir -p $APP_DATA_DIR && sudo chown -R 1001:1001 $APP_DATA_DIR" >&2
-    exit 1
-fi
-
 echo "==> Menarik image"
 docker pull "$APP_IMAGE"
+
+# Direktori volume disiapkan di sini, bukan manual di server. `mkdir` cukup
+# dijalankan sebagai user deploy karena direktori induknya miliknya sendiri.
+# `chown` ke UID 1001 — UID user di dalam container — butuh root, dan itu
+# didapat lewat container sekali pakai alih-alih `sudo`, supaya user deploy
+# tetap tanpa hak istimewa apa pun di server. Image yang dipakai adalah image
+# aplikasi yang baru ditarik, jadi tidak ada dependensi baru.
+echo "==> Menyiapkan direktori data $APP_DATA_DIR"
+mkdir -p "$APP_DATA_DIR"
+if [ "$(stat -c %u "$APP_DATA_DIR")" != "1001" ]; then
+    docker run --rm -u 0 --entrypoint chown \
+        -v "$APP_DATA_DIR:/data" "$APP_IMAGE" -R 1001:1001 /data
+fi
 
 echo "==> Menjalankan container"
 docker compose --env-file .env.deploy up -d --remove-orphans

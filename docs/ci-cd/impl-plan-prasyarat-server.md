@@ -58,19 +58,30 @@ sama dengan user yang sama. Saat server prod dipisah nanti, buat pasangan kedua.
 
 ## 3. Direktori deploy dan direktori data
 
-Direktori deploy dibuat otomatis oleh workflow. Direktori data **harus** dibuat
-manual karena pemiliknya perlu diubah ke UID 1001 — UID user di dalam container,
-sesuai [impl-plan-dockerfile.md](./impl-plan-dockerfile.md).
+Keduanya dibuat otomatis oleh pipeline — **tidak ada langkah manual di sini.**
+
+Direktori deploy dibuat workflow lewat `mkdir -p` sebelum `scp`. Direktori data
+dibuat `scripts/deploy.sh`, yang juga mengurus pemiliknya:
 
 ```bash
-sudo mkdir -p /home/masesas/data/demo1-dev/images
-sudo mkdir -p /home/masesas/data/demo1-prod/images
-sudo chown -R 1001:1001 /home/masesas/data/demo1-dev /home/masesas/data/demo1-prod
+mkdir -p "$APP_DATA_DIR"
+if [ "$(stat -c %u "$APP_DATA_DIR")" != "1001" ]; then
+    docker run --rm -u 0 --entrypoint chown \
+        -v "$APP_DATA_DIR:/data" "$APP_IMAGE" -R 1001:1001 /data
+fi
 ```
+
+`mkdir` tidak butuh `sudo` karena `/home/masesas` sudah milik user deploy.
+Pemiliknya perlu UID 1001 — UID user di dalam container, sesuai
+[impl-plan-dockerfile.md](./impl-plan-dockerfile.md) — dan itu menuntut root.
+Root didapat dari container sekali pakai, bukan dari `sudo`, sehingga user
+deploy tetap tanpa hak istimewa apa pun di server. Image yang dipakai adalah
+image aplikasi yang baru ditarik, jadi tidak ada dependensi baru.
 
 Tanpa `chown`, aplikasi berjalan tapi setiap unggahan avatar gagal dengan
 `Permission denied` — dan itu baru ketahuan saat seseorang mencoba mengunggah,
-bukan saat deploy.
+bukan saat deploy. Karena itu pemeriksaannya dijalankan setiap deploy, bukan
+sekali di awal.
 
 ## 4. Login ke GHCR
 
@@ -125,8 +136,6 @@ dan `docker ps` di server ikut selaras.
 - [ ] Kunci SSH dibuat di mesin lokal, publiknya terpasang di server
 - [ ] `ssh -i ~/.ssh/demo1_deploy masesas@<host>` berhasil tanpa password
 - [ ] Private key disalin ke secret `SSH_PRIVATE_KEY_DEV` dan `SSH_PRIVATE_KEY_PROD`
-- [ ] `/home/masesas/data/demo1-dev/images` ada dan dimiliki UID 1001
-- [ ] `/home/masesas/data/demo1-prod/images` ada dan dimiliki UID 1001
 - [ ] `docker login ghcr.io` berhasil, atau kedua package dijadikan publik
 - [ ] Port 8080 dan 8081 terbuka di firewall
 - [ ] Zona waktu server `Asia/Jakarta`
@@ -149,7 +158,7 @@ timedatectl | grep "Time zone"
 | `denied: denied` saat `docker pull` | Langkah 4 — server belum login ke GHCR, atau PAT kedaluwarsa |
 | `docker: command not found` | Langkah 1 |
 | `permission denied while trying to connect to the Docker daemon` | Langkah 1 — user belum masuk grup `docker`, atau belum login ulang |
-| `deploy: direktori data ... belum ada` | Langkah 3 |
+| `mkdir: cannot create directory` di `deploy.sh` | Langkah 3 — `/home/masesas` bukan milik user deploy |
 | Container `healthy` tapi `curl` dari luar timeout | Langkah 5 |
 | Unggah avatar gagal `Permission denied`, hal lain normal | Langkah 3 — direktori ada tapi pemiliknya bukan 1001 |
 | `docker compose: 'compose' is not a docker command` | Langkah 1 — plugin Compose v2 belum terpasang |
