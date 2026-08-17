@@ -3,6 +3,12 @@ package com.masesas.exercises.demo1.controller;
 import com.masesas.exercises.demo1.dto.Karyawan2Request;
 import com.masesas.exercises.demo1.dto.Karyawan2Response;
 import com.masesas.exercises.demo1.service.Karyawan2Service;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +27,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/karyawan2")
+@Tag(name = "Karyawan2", description = "Data karyawan lewat JdbcTemplate, bukan JPA. "
+        + "Butuh token, tanpa pembatasan peran.")
+@SecurityRequirement(name = "karyawanAuth")
+@SecurityRequirement(name = "customerAuth")
 public class Karyawan2Controller {
 
     private final Karyawan2Service karyawan2Service;
@@ -30,12 +40,19 @@ public class Karyawan2Controller {
     }
 
     @GetMapping
+    @Operation(summary = "Seluruh karyawan tanpa paging")
+    @ApiResponse(responseCode = "200", description = "Seluruh karyawan")
     public List<Karyawan2Response> getAll() {
         return karyawan2Service.getAll();
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Karyawan2Response> getById(@PathVariable Integer id) {
+    @Operation(summary = "Ambil satu karyawan berdasarkan id")
+    @ApiResponse(responseCode = "200", description = "Karyawan ditemukan")
+    @ApiResponse(responseCode = "404", description = "Karyawan tidak ada", content = @Content)
+    public ResponseEntity<Karyawan2Response> getById(
+            @Parameter(description = "ID karyawan", example = "1")
+            @PathVariable Integer id) {
         Karyawan2Response karyawan = karyawan2Service.getById(id);
         if (karyawan == null) {
             return ResponseEntity.notFound().build();
@@ -44,39 +61,64 @@ public class Karyawan2Controller {
     }
 
     @GetMapping("/status")
-    public List<Karyawan2Response> getAllByStatus(@RequestParam String status) {
+    @Operation(summary = "Daftar karyawan berdasarkan status kepegawaian")
+    @ApiResponse(responseCode = "200", description = "Karyawan dengan status tersebut")
+    public List<Karyawan2Response> getAllByStatus(
+            @Parameter(description = "Status kepegawaian", example = "AKTIF")
+            @RequestParam String status) {
         return karyawan2Service.getAllByStatus(status);
     }
 
     @GetMapping("/page")
+    @Operation(summary = "Daftar karyawan dengan paging manual")
+    @ApiResponse(responseCode = "200", description = "Satu halaman karyawan")
     public Page<Karyawan2Response> getPage(
+            @Parameter(description = "Nomor halaman, dimulai dari 0", example = "0")
             @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Jumlah baris per halaman", example = "10")
             @RequestParam(defaultValue = "10") int size) {
         return karyawan2Service.getPage(page, size);
     }
 
     @GetMapping("/search")
+    @Operation(summary = "Cari karyawan berdasarkan nama")
+    @ApiResponse(responseCode = "200", description = "Satu halaman hasil pencarian")
     public Page<Karyawan2Response> getPageByNama(
+            @Parameter(description = "Potongan nama yang dicari", example = "budi")
             @RequestParam String nama,
+            @Parameter(description = "Nomor halaman, dimulai dari 0", example = "0")
             @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Jumlah baris per halaman", example = "10")
             @RequestParam(defaultValue = "10") int size) {
         return karyawan2Service.getPageByNama(nama, page, size);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Tambah satu karyawan")
+    @ApiResponse(responseCode = "201", description = "Karyawan dibuat")
     public Karyawan2Response insert(@RequestBody Karyawan2Request request) {
         return karyawan2Service.insert(request);
     }
 
     @PostMapping("/batch")
     @ResponseStatus(HttpStatus.CREATED)
+    @Operation(
+            summary = "Tambah banyak karyawan sekaligus",
+            description = "Dijalankan sebagai satu batch JDBC. Balasannya jumlah baris yang masuk.")
+    @ApiResponse(responseCode = "201", description = "Jumlah baris yang berhasil dimasukkan")
     public int insertBatch(@RequestBody List<Karyawan2Request> requests) {
         return karyawan2Service.insertBatch(requests);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Karyawan2Response> update(@PathVariable Integer id, @RequestBody Karyawan2Request request) {
+    @Operation(summary = "Ubah data karyawan")
+    @ApiResponse(responseCode = "200", description = "Karyawan diperbarui")
+    @ApiResponse(responseCode = "404", description = "Karyawan tidak ada", content = @Content)
+    public ResponseEntity<Karyawan2Response> update(
+            @Parameter(description = "ID karyawan", example = "1")
+            @PathVariable Integer id,
+            @RequestBody Karyawan2Request request) {
         Karyawan2Response karyawan = karyawan2Service.update(id, request);
         if (karyawan == null) {
             return ResponseEntity.notFound().build();
@@ -85,7 +127,12 @@ public class Karyawan2Controller {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Integer id) {
+    @Operation(summary = "Hapus karyawan")
+    @ApiResponse(responseCode = "204", description = "Karyawan dihapus")
+    @ApiResponse(responseCode = "404", description = "Karyawan tidak ada", content = @Content)
+    public ResponseEntity<Void> delete(
+            @Parameter(description = "ID karyawan", example = "1")
+            @PathVariable Integer id) {
         if (!karyawan2Service.delete(id)) {
             return ResponseEntity.notFound().build();
         }

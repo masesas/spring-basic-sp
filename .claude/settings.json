@@ -1,12 +1,36 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__ide__getDiagnostics"
+    ]
+  },
   "hooks": {
-    "PostToolUse": [
+    "SessionStart": [
       {
-        "matcher": "Bash",
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/bd-issue-policy-lint.js\""
+            "command": "if [ -d .beads ]; then echo '=== BEADS MEMORY RECALL ===' && bd memories \"\"; fi"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ -d .beads ]; then echo '=== BEADS MEMORY RECALL (pre-compact) ===' && bd memories \"\"; fi"
           }
         ]
       }

@@ -29,6 +29,7 @@
     <properties>
         <java.version>21</java.version>
         <jjwt.version>0.12.6</jjwt.version>
+        <springdoc.version>3.1.0</springdoc.version>
         <bucket4j.version>8.14.0</bucket4j.version>
         <dependency-check.version>12.1.0</dependency-check.version>
         <enforcer.version>3.5.0</enforcer.version>
@@ -79,7 +80,21 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
-        
+
+        <!--
+            Dokumentasi API. Starter ini membawa generator spesifikasi springdoc
+            plus UI Scalar, dan sengaja tidak membawa webjar swagger-ui.
+
+            Versi ditulis eksplisit karena springdoc tidak dikelola parent
+            spring-boot-dependencies, sementara maven-enforcer di bawah
+            melarang versi dinamis.
+        -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-scalar</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>

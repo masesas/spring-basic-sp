@@ -40,6 +40,10 @@ public class JwtService {
         return builder(user, issuedAt).compact();
     }
 
+    public long ttlSeconds() {
+        return ttl.toSeconds();
+    }
+
     public Claims parse(String token) {
         return Jwts.parser()
                 .verifyWith(key)

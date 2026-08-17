@@ -7,6 +7,7 @@ import com.masesas.exercises.demo1.security.UnauthorizedHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,14 +24,28 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 @Configuration
 public class SecurityConfig {
 
-    public static final List<String> WHITELIST_ENDPOINTS = List.of(
-            "/api/auth/**",
-            "/api/rolemap/**"
+    public static final List<String> DOCS_ENDPOINTS = List.of(
+            "/docs",
+            "/docs/**"
     );
+
+    public static final List<String> WHITELIST_ENDPOINTS = Stream.concat(
+            Stream.of("/api/auth/**", "/api/rolemap/**"),
+            DOCS_ENDPOINTS.stream()
+    ).toList();
+
+    private static final String CSP_API =
+            "default-src 'none'; frame-ancestors 'none'; base-uri 'none'";
+
+    private static final String CSP_DOCS =
+            "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+                    + "img-src 'self' data:; font-src 'self' data:; connect-src 'self'; "
+                    + "frame-ancestors 'none'; base-uri 'none'";
 
     public static final List<String> CHILDREN_ROLE = List.of(
             "ADMIN",
@@ -46,6 +61,28 @@ public class SecurityConfig {
     private List<String> allowedOrigins;
 
     @Bean
+    @Order(1)
+    SecurityFilterChain docsFilterChain(HttpSecurity http) throws Exception {
+        return http
+                .securityMatcher(DOCS_ENDPOINTS.toArray(String[]::new))
+                .csrf(csrf -> csrf.disable())
+                .headers(headers -> headers
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(CSP_DOCS))
+                        .referrerPolicy(referrer -> referrer.policy(
+                                ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .includeSubDomains(true)
+                                .maxAgeInSeconds(31536000))
+                        .frameOptions(frame -> frame.deny()))
+                .authorizeHttpRequests(request -> request.anyRequest().permitAll())
+                .formLogin(form -> form.disable())
+                .httpBasic(basic -> basic.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .build();
+    }
+
+    @Bean
+    @Order(2)
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             JwtAuthFilter jwtAuthFilter,
@@ -54,8 +91,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .headers(headers -> headers
-                        .contentSecurityPolicy(csp -> csp.policyDirectives(
-                                "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"))
+                        .contentSecurityPolicy(csp -> csp.policyDirectives(CSP_API))
                         .referrerPolicy(referrer -> referrer.policy(
                                 ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER))
                         .httpStrictTransportSecurity(hsts -> hsts

@@ -11,6 +11,7 @@ target/
 !.env.example
 !.env.server.example
 http/http-client.private.env.json
+http/delete_key.py
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/

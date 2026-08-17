@@ -92,6 +92,13 @@ Pendukung: `runner.py` (eksekusi dari terminal), `http-client.env.json`
 | `GET /api/customer/me` | 404 | — | — | — | — | — | — | ✅ | — | 401 |
 | `/api/karyawan2/**`, `/api/sp/karyawan/**` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 401 |
 | `/api/auth/**`, `/api/rolemap/**` | publik | publik | publik | publik | publik | publik | publik | publik | publik | publik |
+| `/docs`, `/docs/**` | publik | publik | publik | publik | publik | publik | publik | publik | publik | publik |
+
+`/docs` adalah dokumentasi API interaktif (Scalar) beserta spesifikasi
+OpenAPI-nya di `/docs/openapi`. Keduanya ditangani `SecurityFilterChain`
+tersendiri di `SecurityConfig` — bukan chain utama — karena halaman itu perlu
+Content-Security-Policy yang lebih longgar daripada `/api/**`. Lihat
+[../docs/api-docs/README.md](../docs/api-docs/README.md).
 
 SUPERADMIN mendapat `404` di `GET /api/customer/me`, bukan `403` maupun `✅`:
 otorisasinya lolos lewat hierarki peran, tetapi tidak ada baris `customer`

@@ -1,5 +1,9 @@
 package com.masesas.exercises.demo1.exception;
 
+import com.masesas.exercises.demo1.dto.ApiErrorResponse;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,12 +31,24 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    private static final String JSON = "application/json";
+
     @ExceptionHandler(ResourceNotFoundException.class)
+    @ApiResponse(
+            responseCode = "404",
+            description = "Data yang diminta tidak ada",
+            content = @Content(mediaType = JSON,
+                    schema = @Schema(implementation = ApiErrorResponse.class)))
     public ResponseEntity<Map<String, Object>> handleNotFound(ResourceNotFoundException ex) {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler({ConflictException.class, ObjectOptimisticLockingFailureException.class})
+    @ApiResponse(
+            responseCode = "409",
+            description = "Bentrok dengan data yang sudah ada, atau data sudah diubah orang lain",
+            content = @Content(mediaType = JSON,
+                    schema = @Schema(implementation = ApiErrorResponse.class)))
     public ResponseEntity<Map<String, Object>> handleConflict(Exception ex) {
         String pesan = ex instanceof ConflictException
                 ? ex.getMessage()
@@ -46,11 +62,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(InvalidRequestException.class)
+    @ApiResponse(
+            responseCode = "400",
+            description = "Isi permintaan tidak lolos validasi",
+            content = @Content(mediaType = JSON,
+                    schema = @Schema(implementation = ApiErrorResponse.class)))
     public ResponseEntity<Map<String, Object>> handleInvalid(InvalidRequestException ex) {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(BusinessRuleException.class)
+    @ApiResponse(
+            responseCode = "422",
+            description = "Bentuk permintaan benar, tapi melanggar aturan bisnis",
+            content = @Content(mediaType = JSON,
+                    schema = @Schema(implementation = ApiErrorResponse.class)))
     public ResponseEntity<Map<String, Object>> handleBusinessRule(BusinessRuleException ex) {
         return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
     }
@@ -76,11 +102,21 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(AccessDeniedException.class)
+    @ApiResponse(
+            responseCode = "403",
+            description = "Sudah login, tapi peran akun tidak cukup untuk endpoint ini",
+            content = @Content(mediaType = JSON,
+                    schema = @Schema(implementation = ApiErrorResponse.class)))
     public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex) {
         return build(HttpStatus.FORBIDDEN, "Akses ditolak");
     }
 
     @ExceptionHandler(AuthenticationException.class)
+    @ApiResponse(
+            responseCode = "401",
+            description = "Token tidak ada, tidak valid, atau kedaluwarsa",
+            content = @Content(mediaType = JSON,
+                    schema = @Schema(implementation = ApiErrorResponse.class)))
     public ResponseEntity<Map<String, Object>> handleAuthentication(AuthenticationException ex) {
         return build(HttpStatus.UNAUTHORIZED, PESAN_AUTENTIKASI_DIPERLUKAN);
     }
@@ -91,6 +127,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
+    @ApiResponse(
+            responseCode = "500",
+            description = "Kesalahan tak terduga di server",
+            content = @Content(mediaType = JSON,
+                    schema = @Schema(implementation = ApiErrorResponse.class)))
     public ResponseEntity<Map<String, Object>> handleUnexpected(Exception ex) {
         log.error("Kesalahan tak terduga", ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "Terjadi kesalahan pada server");
