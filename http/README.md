@@ -70,9 +70,16 @@ ijhttp --env-file http-client.env.json \
 | `role-multi-manager-sales.http` | manager.sales@masesas.test (id 5) | MANAGER + SALES |
 | `role-tanpa-peran.http` | tanparole@masesas.test (id 6) | — |
 | `role-guest.http` | tanpa token | GUEST (anonim) |
+| `loan.http` | customer baru tiap jalan + ADMIN, MANAGER, MARKETING | alur & RBAC modul pinjaman |
 
 Pendukung: `runner.py` (eksekusi dari terminal), `http-client.env.json`
 (host, email, id akun), `http-client.private.env.json.example` (contoh password).
+
+`loan.http` sengaja **tidak** memakai awalan `role-`, jadi `runner.py` tidak
+menjalankannya. Alasannya: alur pinjaman mengubah plafond customer secara
+permanen — dijalankan berulang di CI, plafond akan habis dan berkasnya mulai
+gagal karena kehabisan kuota, bukan karena ada yang rusak. Jalankan manual dari
+IDE bila ingin menelusuri alurnya.
 
 ## Matriks akses
 
@@ -90,6 +97,16 @@ Pendukung: `runner.py` (eksekusi dari terminal), `http-client.env.json`
 | `/api/payroll` *(selain DELETE)* | ✅ | ✅ | ✅ | — | — | ✅ | — | — | — | 401 |
 | `DELETE /api/payroll/{id}/{periode}` | ✅ | ✅ | — | — | — | ✅ | — | — | — | 401 |
 | `GET /api/customer/me` | 404 | — | — | — | — | — | — | ✅ | — | 401 |
+| `GET /api/branch`, `/api/loan-product`, `/api/loan-document-type` | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | — | 401 |
+| `POST/PUT/DELETE` master pinjaman *(dan `/api/permission`, `/api/role-permission`)* | ✅ | ✅ | — | — | — | — | — | — | — | 401 |
+| `GET /api/loan-plafond/**` | ✅ | ✅ | ✅ | — | ✅ | — | — | — | — | 401 |
+| `PUT /api/loan-plafond` | ✅ | ✅ | — | — | — | — | — | — | — | 401 |
+| `GET /api/loan-application` *(dan `/{id}`)* | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | — | 401 |
+| `POST /api/loan-application/{id}/approve` *(dan `/reject`)* | ✅ | ✅ | ✅ | — | — | — | — | — | — | 401 |
+| `POST /api/loan-application/{id}/disburse` | ✅ | ✅ | — | — | — | — | — | — | — | 401 |
+| `GET /api/loan-payment/**` | ✅ | ✅ | ✅ | — | ✅ | — | — | — | — | 401 |
+| `POST /api/loan-payment` | ✅ | ✅ | — | — | ✅ | — | — | — | — | 401 |
+| `/api/customer/loan-application/**` | 404 | — | — | — | — | — | — | ✅ | — | 401 |
 | `/api/karyawan2/**`, `/api/sp/karyawan/**` | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | 401 |
 | `/api/auth/**`, `/api/rolemap/**` | publik | publik | publik | publik | publik | publik | publik | publik | publik | publik |
 | `/docs`, `/docs/**` | publik | publik | publik | publik | publik | publik | publik | publik | publik | publik |

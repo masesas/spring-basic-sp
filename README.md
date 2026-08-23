@@ -238,6 +238,18 @@ Nothing in the specification is written by hand — it is generated at runtime f
 | `GET/PUT` | `/api/sp/karyawan/**` | Stored-procedure access |
 | `GET` | `/api/sp/karyawan/statistik/**` | Aggregated statistics |
 | `GET/POST/PUT/DELETE` | `/api/payroll/**` | `ADMIN`, `MANAGER`, `HR` |
+| `GET/POST/PUT/DELETE` | `/api/branch/**` | `BRANCH_READ` / `BRANCH_WRITE` |
+| `GET/POST/PUT/DELETE` | `/api/permission/**` | `PERMISSION_READ` / `PERMISSION_WRITE` |
+| `GET/POST/DELETE` | `/api/role-permission/**` | `ROLE_PERMISSION_READ` / `ROLE_PERMISSION_WRITE` |
+| `GET/POST/PUT/DELETE` | `/api/loan-product/**` | `LOAN_PRODUCT_READ` / `LOAN_PRODUCT_WRITE` |
+| `GET/POST/PUT/DELETE` | `/api/loan-document-type/**` | `LOAN_DOCUMENT_TYPE_READ` / `LOAN_DOCUMENT_TYPE_WRITE` |
+| `GET/PUT` | `/api/loan-plafond/**` | `LOAN_PLAFOND_READ` / `LOAN_PLAFOND_WRITE` |
+| `GET` | `/api/loan-application`, `/api/loan-application/{id}` | `LOAN_APPLICATION_READ` |
+| `POST` | `/api/loan-application/{id}/approve` | `LOAN_APPLICATION_APPROVE` |
+| `POST` | `/api/loan-application/{id}/reject` | `LOAN_APPLICATION_REJECT` |
+| `POST` | `/api/loan-application/{id}/disburse` | `LOAN_APPLICATION_DISBURSE` |
+| `GET/POST` | `/api/loan-payment/**` | `LOAN_PAYMENT_READ` / `LOAN_PAYMENT_WRITE` |
+| `GET/POST/PUT` | `/api/customer/loan-application/**` | `CUSTOMER` — own applications only |
 | `GET` | `/api/dummyjson/products/**` | External API proxy |
 | `GET` | `/docs`, `/docs/openapi` | Public |
 
@@ -249,17 +261,21 @@ The authoritative, always-current list is `GET /api/rolemap/matriks` — or the 
 
 | Role | Reachable endpoints | Scope |
 |---|---|---|
-| `SUPERADMIN` | 52 | Everything — inherits every role below |
-| `ADMIN` | 51 | Full employee management, deletion, detail records |
-| `MANAGER` | 48 | Employee management and payroll, no deletion |
-| `HR` | 45 | Payroll and employee reads |
+| `SUPERADMIN` | 93 | Everything — inherits every role below, and holds every permission |
+| `ADMIN` | 86 | Full employee management, deletion, detail records, every loan permission |
+| `MANAGER` | 62 | Employee management and payroll; approves and rejects loans, cannot disburse |
+| `SALES` | 49 | Employee reads, loan reads, records loan payments |
+| `HR` | 45 | Payroll and employee reads; no loan permissions at all |
+| `MARKETING` | 44 | Employee reads and loan reads only |
+| `CUSTOMER` | 38 | Customer self-service — own profile and own loan applications |
 | `KARYAWAN` | 36 | Own-scope reads |
-| `MARKETING` | 36 | Employee reads |
-| `SALES` | 36 | Employee reads |
-| `CUSTOMER` | 32 | Customer self-service only |
 | `GUEST` | 12 | Assigned to unauthenticated requests; public routes only |
 
 The counts are not maintained by hand — they come from `GET /api/rolemap/matriks`, which derives them from the running application. Every role's total includes the 12 public endpoints.
+
+Two authorization models run side by side, and the boundary is deliberate: **internal staff are governed by permissions** (`hasAuthority('LOAN_APPLICATION_APPROVE')`, granted through the `role_permission` table), while **customers are governed by roles** (`hasRole('CUSTOMER')` plus an ownership check performed in the service). Changing who may approve a loan is a row in `role_permission`, not a redeploy — the authenticated user is reloaded from the database on every request, so a revoked permission takes effect on the next call rather than at the next token refresh.
+
+Note that `RoleHierarchy` only implies authorities prefixed with `ROLE_`. `SUPERADMIN` therefore does **not** inherit permissions from the hierarchy; its permissions are granted explicitly in `permission_masesas.sql`.
 
 A user may hold several roles at once — `manager.sales@masesas.test` in the seed data exercises that path.
 
