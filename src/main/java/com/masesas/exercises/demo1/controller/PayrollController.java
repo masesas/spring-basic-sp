@@ -1,5 +1,6 @@
 package com.masesas.exercises.demo1.controller;
 
+import com.masesas.exercises.demo1.dto.BaseApiResponse;
 import com.masesas.exercises.demo1.dto.PayrollRequest;
 import com.masesas.exercises.demo1.dto.PayrollResponse;
 import com.masesas.exercises.demo1.dto.PayrollUpdateRequest;
@@ -11,7 +12,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -43,6 +43,7 @@ import java.util.Map;
 public class PayrollController {
 
     private static final String PERIODE = "Awal bulan periode gaji dalam format ISO yyyy-MM-dd";
+    private static final String PESAN_HALAMAN = "Satu halaman slip gaji";
 
     private final PayrollService payrollService;
 
@@ -52,38 +53,39 @@ public class PayrollController {
             summary = "Buat slip gaji baru",
             description = "Satu karyawan hanya boleh punya satu slip per periode.")
     @ApiResponse(responseCode = "201", description = "Slip gaji dibuat")
-    public PayrollResponse create(@Valid @RequestBody PayrollRequest request) {
-        return payrollService.create(request);
+    public BaseApiResponse<PayrollResponse> create(@Valid @RequestBody PayrollRequest request) {
+        return BaseApiResponse.created("Slip gaji dibuat", payrollService.create(request));
     }
 
     @GetMapping("/{idKaryawan}/{periode}")
     @Operation(summary = "Ambil satu slip gaji")
     @ApiResponse(responseCode = "200", description = "Slip gaji ditemukan")
-    public PayrollResponse findById(
+    public BaseApiResponse<PayrollResponse> findById(
             @Parameter(description = "ID karyawan", example = "12")
             @PathVariable Integer idKaryawan,
             @Parameter(description = PERIODE, example = "2026-08-01")
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periode) {
-        return payrollService.findById(idKaryawan, periode);
+        return BaseApiResponse.ok("Slip gaji ditemukan", payrollService.findById(idKaryawan, periode));
     }
 
     @GetMapping
     @Operation(
             summary = "Daftar seluruh slip gaji",
             description = "Memakai parameter paging standar Spring Data: page, size, sort.")
-    @ApiResponse(responseCode = "200", description = "Satu halaman slip gaji")
-    public Page<PayrollResponse> findAll(Pageable pageable) {
-        return payrollService.findAll(pageable);
+    @ApiResponse(responseCode = "200", description = PESAN_HALAMAN)
+    public BaseApiResponse<List<PayrollResponse>> findAll(Pageable pageable) {
+        return BaseApiResponse.page(PESAN_HALAMAN, payrollService.findAll(pageable));
     }
 
     @GetMapping("/periode/{periode}")
     @Operation(summary = "Daftar slip gaji pada satu periode")
     @ApiResponse(responseCode = "200", description = "Satu halaman slip gaji pada periode itu")
-    public Page<PayrollResponse> findByPeriode(
+    public BaseApiResponse<List<PayrollResponse>> findByPeriode(
             @Parameter(description = PERIODE, example = "2026-08-01")
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periode,
             Pageable pageable) {
-        return payrollService.findByPeriode(periode, pageable);
+        return BaseApiResponse.page(
+                "Satu halaman slip gaji pada periode itu", payrollService.findByPeriode(periode, pageable));
     }
 
     @GetMapping("/karyawan/{idKaryawan}")
@@ -91,10 +93,10 @@ public class PayrollController {
             summary = "Riwayat gaji satu karyawan",
             description = "Seluruh periode untuk karyawan tersebut, tanpa paging.")
     @ApiResponse(responseCode = "200", description = "Riwayat slip gaji")
-    public List<PayrollResponse> findRiwayatKaryawan(
+    public BaseApiResponse<List<PayrollResponse>> findRiwayatKaryawan(
             @Parameter(description = "ID karyawan", example = "12")
             @PathVariable Integer idKaryawan) {
-        return payrollService.findRiwayatKaryawan(idKaryawan);
+        return BaseApiResponse.ok("Riwayat slip gaji", payrollService.findRiwayatKaryawan(idKaryawan));
     }
 
     @GetMapping("/rekap")
@@ -103,11 +105,13 @@ public class PayrollController {
             description = "Balasannya berisi periode yang dinormalkan ke awal bulan "
                     + "dan totalBersih sebagai jumlah seluruh slip pada periode itu.")
     @ApiResponse(responseCode = "200", description = "Rekap total gaji bersih")
-    public Map<String, Object> rekap(
+    public BaseApiResponse<Map<String, Object>> rekap(
             @Parameter(description = PERIODE, example = "2026-08-01")
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periode) {
         BigDecimal total = payrollService.totalBersihPadaPeriode(periode);
-        return Map.of("periode", periode.withDayOfMonth(1), "totalBersih", total);
+        return BaseApiResponse.ok(
+                "Rekap total gaji bersih",
+                Map.of("periode", periode.withDayOfMonth(1), "totalBersih", total));
     }
 
     @PutMapping("/{idKaryawan}/{periode}")
@@ -115,13 +119,14 @@ public class PayrollController {
             summary = "Revisi nominal slip gaji",
             description = "Slip yang sudah disetujui tidak bisa direvisi lagi.")
     @ApiResponse(responseCode = "200", description = "Slip gaji diperbarui")
-    public PayrollResponse update(
+    public BaseApiResponse<PayrollResponse> update(
             @Parameter(description = "ID karyawan", example = "12")
             @PathVariable Integer idKaryawan,
             @Parameter(description = PERIODE, example = "2026-08-01")
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periode,
             @Valid @RequestBody PayrollUpdateRequest request) {
-        return payrollService.update(idKaryawan, periode, request);
+        return BaseApiResponse.ok(
+                "Slip gaji diperbarui", payrollService.update(idKaryawan, periode, request));
     }
 
     @PostMapping("/{idKaryawan}/{periode}/approve")
@@ -129,12 +134,12 @@ public class PayrollController {
             summary = "Setujui dan kunci slip gaji",
             description = "Setelah disetujui, nominalnya tidak bisa diubah lagi.")
     @ApiResponse(responseCode = "200", description = "Slip gaji disetujui")
-    public PayrollResponse approve(
+    public BaseApiResponse<PayrollResponse> approve(
             @Parameter(description = "ID karyawan", example = "12")
             @PathVariable Integer idKaryawan,
             @Parameter(description = PERIODE, example = "2026-08-01")
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate periode) {
-        return payrollService.approve(idKaryawan, periode);
+        return BaseApiResponse.ok("Slip gaji disetujui", payrollService.approve(idKaryawan, periode));
     }
 
     @DeleteMapping("/{idKaryawan}/{periode}")

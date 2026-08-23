@@ -1,6 +1,7 @@
 package com.masesas.exercises.demo1.controller;
 
 import com.masesas.exercises.demo1.dto.AuthResponse;
+import com.masesas.exercises.demo1.dto.BaseApiResponse;
 import com.masesas.exercises.demo1.dto.CustomerRegisterRequest;
 import com.masesas.exercises.demo1.dto.CustomerResponse;
 import com.masesas.exercises.demo1.dto.LoginRequest;
@@ -13,6 +14,7 @@ import com.masesas.exercises.demo1.security.LoginAttemptService;
 import com.masesas.exercises.demo1.service.CustomerService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -37,6 +39,9 @@ import java.util.Optional;
 public class AuthController {
 
     private static final String TIPE_TOKEN = "Bearer";
+    private static final String PESAN_TERKUNCI = "Akun terkunci sementara karena terlalu banyak percobaan gagal";
+    private static final String KODE_TERKUNCI = "ACCOUNT_LOCKED";
+    private static final String PESAN_LOGIN_BERHASIL = "Login berhasil, token diterbitkan";
 
     private final AppUserDetailsService userDetailsService;
     private final CustomerService customerService;
@@ -50,10 +55,11 @@ public class AuthController {
             summary = "Login akun karyawan",
             description = "Menukar username dan password dengan JWT yang berlaku 15 menit. "
                     + "Setelah lima kali gagal berturut-turut, akun terkunci sementara.")
-    @ApiResponse(responseCode = "200", description = "Login berhasil, token diterbitkan")
+    @ApiResponse(responseCode = "200", description = PESAN_LOGIN_BERHASIL)
     @ApiResponse(responseCode = "423", description = "Akun terkunci sementara karena terlalu banyak percobaan gagal",
-            content = @Content)
-    public ResponseEntity<AuthResponse> loginKaryawan(@Valid @RequestBody LoginRequest request) {
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = BaseApiResponse.class)))
+    public ResponseEntity<BaseApiResponse<AuthResponse>> loginKaryawan(@Valid @RequestBody LoginRequest request) {
         return login(userDetailsService.findKaryawan(request.getUsername()), request);
     }
 
@@ -62,11 +68,17 @@ public class AuthController {
             summary = "Terbitkan token karyawan (OAuth2 password flow)",
             description = "Endpoint yang dipanggil tombol Authorize di halaman ini untuk skema "
                     + "karyawanAuth. Menerima form-urlencoded dan membalas dalam bentuk OAuth2 "
-                    + "sehingga tokennya bisa dipasang otomatis. Pemeriksaan kredensial dan "
+                    + "sehingga tokennya bisa dipasang otomatis. Badan response endpoint ini "
+                    + "sengaja tidak dibungkus BaseApiResponse karena spesifikasi OAuth2 "
+                    + "mewajibkan access_token berada di akar JSON. Pemeriksaan kredensial dan "
                     + "penguncian akunnya sama persis dengan /api/auth/karyawan/login.")
-    @ApiResponse(responseCode = "200", description = "Token diterbitkan")
-    @ApiResponse(responseCode = "423", description = "Akun terkunci sementara", content = @Content)
-    public ResponseEntity<TokenResponse> tokenKaryawan(@Valid LoginRequest request) {
+    @ApiResponse(responseCode = "200", description = "Token diterbitkan",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = TokenResponse.class)))
+    @ApiResponse(responseCode = "423", description = "Akun terkunci sementara",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = BaseApiResponse.class)))
+    public ResponseEntity<Object> tokenKaryawan(@Valid LoginRequest request) {
         return token(userDetailsService.findKaryawan(request.getUsername()), request);
     }
 
@@ -74,9 +86,13 @@ public class AuthController {
     @Operation(
             summary = "Terbitkan token customer (OAuth2 password flow)",
             description = "Padanan /api/auth/karyawan/token untuk skema customerAuth.")
-    @ApiResponse(responseCode = "200", description = "Token diterbitkan")
-    @ApiResponse(responseCode = "423", description = "Akun terkunci sementara", content = @Content)
-    public ResponseEntity<TokenResponse> tokenCustomer(@Valid LoginRequest request) {
+    @ApiResponse(responseCode = "200", description = "Token diterbitkan",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = TokenResponse.class)))
+    @ApiResponse(responseCode = "423", description = "Akun terkunci sementara",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = BaseApiResponse.class)))
+    public ResponseEntity<Object> tokenCustomer(@Valid LoginRequest request) {
         return token(userDetailsService.findCustomer(request.getUsername()), request);
     }
 
@@ -85,36 +101,45 @@ public class AuthController {
             summary = "Daftarkan akun customer baru",
             description = "Email harus belum terpakai. Password disimpan sebagai hash bcrypt.")
     @ApiResponse(responseCode = "201", description = "Akun customer dibuat")
-    public ResponseEntity<CustomerResponse> register(@Valid @RequestBody CustomerRegisterRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(customerService.register(request));
+    public ResponseEntity<BaseApiResponse<CustomerResponse>> register(
+            @Valid @RequestBody CustomerRegisterRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(BaseApiResponse.created("Akun customer dibuat", customerService.register(request)));
     }
 
     @PostMapping("/customer/login")
     @Operation(
             summary = "Login akun customer",
             description = "Sama dengan login karyawan, tapi memeriksa tabel customer.")
-    @ApiResponse(responseCode = "200", description = "Login berhasil, token diterbitkan")
-    @ApiResponse(responseCode = "423", description = "Akun terkunci sementara", content = @Content)
-    public ResponseEntity<AuthResponse> loginCustomer(@Valid @RequestBody LoginRequest request) {
+    @ApiResponse(responseCode = "200", description = PESAN_LOGIN_BERHASIL)
+    @ApiResponse(responseCode = "423", description = "Akun terkunci sementara",
+            content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = BaseApiResponse.class)))
+    public ResponseEntity<BaseApiResponse<AuthResponse>> loginCustomer(@Valid @RequestBody LoginRequest request) {
         return login(userDetailsService.findCustomer(request.getUsername()), request);
     }
 
-    private ResponseEntity<AuthResponse> login(Optional<AppUser> found, LoginRequest request) {
+    private ResponseEntity<BaseApiResponse<AuthResponse>> login(Optional<AppUser> found, LoginRequest request) {
         if (loginAttempts.isLocked(request.getUsername())) {
-            return ResponseEntity.status(HttpStatus.LOCKED).build();
+            return ResponseEntity.status(HttpStatus.LOCKED).body(terkunci());
         }
 
         AppUser user = periksaKredensial(found, request);
-        return ResponseEntity.ok(new AuthResponse(terbitkan(user), user.getTipe(), user.getRoles()));
+        AuthResponse response = new AuthResponse(terbitkan(user), user.getTipe(), user.getRoles());
+        return ResponseEntity.ok(BaseApiResponse.ok(PESAN_LOGIN_BERHASIL, response));
     }
 
-    private ResponseEntity<TokenResponse> token(Optional<AppUser> found, LoginRequest request) {
+    private ResponseEntity<Object> token(Optional<AppUser> found, LoginRequest request) {
         if (loginAttempts.isLocked(request.getUsername())) {
-            return ResponseEntity.status(HttpStatus.LOCKED).build();
+            return ResponseEntity.status(HttpStatus.LOCKED).body(terkunci());
         }
 
         AppUser user = periksaKredensial(found, request);
         return ResponseEntity.ok(new TokenResponse(terbitkan(user), TIPE_TOKEN, jwtService.ttlSeconds()));
+    }
+
+    private <T> BaseApiResponse<T> terkunci() {
+        return BaseApiResponse.error(HttpStatus.LOCKED, PESAN_TERKUNCI, KODE_TERKUNCI);
     }
 
     private AppUser periksaKredensial(Optional<AppUser> found, LoginRequest request) {

@@ -29,12 +29,12 @@ Content-Type: application/json
         client.assert(response.status === 200, "status " + response.status);
     });
     client.test("peran SUPERADMIN datang dari database", function () {
-        client.assert(response.body.roles.includes("SUPERADMIN"), "roles = " + response.body.roles);
+        client.assert(response.body.data.roles.includes("SUPERADMIN"), "roles = " + response.body.data.roles);
     });
     client.test("peran turunan tidak ikut di token — hanya SUPERADMIN", function () {
-        client.assert(response.body.roles.length === 1, "roles = " + response.body.roles);
+        client.assert(response.body.data.roles.length === 1, "roles = " + response.body.data.roles);
     });
-    client.global.set("token", response.body.token);
+    client.global.set("token", response.body.data.token);
 
     const sekarang = new Date();
     const periode = sekarang.getFullYear() + "-"
@@ -111,7 +111,7 @@ Content-Type: application/json
 
 > {%
     client.test("201", function () { client.assert(response.status === 201, "status " + response.status); });
-    client.global.set("idBaru", response.body.id);
+    client.global.set("idBaru", response.body.data.id);
 %}
 
 ### 3.7 PUT /api/karyawan/{id} — 200
@@ -161,7 +161,7 @@ Content-Type: application/json
 
 > {%
     client.test("201", function () { client.assert(response.status === 201, "status " + response.status); });
-    client.global.set("versiPayroll", response.body.version);
+    client.global.set("versiPayroll", response.body.data.version);
 %}
 
 ### 3.11 GET /api/payroll/{idKaryawan}/{periode} — 200
@@ -242,11 +242,11 @@ GET {{baseUrl}}/api/rolemap/SUPERADMIN
 > {%
     client.test("200", function () { client.assert(response.status === 200, "status " + response.status); });
     client.test("peran SUPERADMIN", function () {
-        client.assert(response.body.peran === "SUPERADMIN", "peran " + response.body.peran);
+        client.assert(response.body.data.peran === "SUPERADMIN", "peran " + response.body.data.peran);
     });
     client.test("jumlah cocok dengan panjang daftar", function () {
-        client.assert(response.body.jumlah === response.body.endpoint.length,
-            "jumlah " + response.body.jumlah + " vs " + response.body.endpoint.length);
+        client.assert(response.body.data.jumlah === response.body.data.endpoint.length,
+            "jumlah " + response.body.data.jumlah + " vs " + response.body.data.endpoint.length);
     });
 %}
 

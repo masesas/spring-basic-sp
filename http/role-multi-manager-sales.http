@@ -28,10 +28,10 @@ Content-Type: application/json
         client.assert(response.status === 200, "status " + response.status);
     });
     client.test("dua peran terbaca dari karyawan_role", function () {
-        client.assert(response.body.roles.includes("MANAGER") && response.body.roles.includes("SALES"),
-            "roles = " + response.body.roles);
+        client.assert(response.body.data.roles.includes("MANAGER") && response.body.data.roles.includes("SALES"),
+            "roles = " + response.body.data.roles);
     });
-    client.global.set("token", response.body.token);
+    client.global.set("token", response.body.data.token);
 
     const sekarang = new Date();
     const periode = sekarang.getFullYear() + "-"
@@ -77,7 +77,7 @@ Content-Type: application/json
 
 > {%
     client.test("201", function () { client.assert(response.status === 201, "status " + response.status); });
-    client.global.set("idBaru", response.body.id);
+    client.global.set("idBaru", response.body.data.id);
 %}
 
 ### 3.2 PUT /api/karyawan/{id} — 200
@@ -167,7 +167,7 @@ Content-Type: application/json
     client.test("login admin berhasil", function () {
         client.assert(response.status === 200, "status " + response.status);
     });
-    client.global.set("tokenAdmin", response.body.token);
+    client.global.set("tokenAdmin", response.body.data.token);
 %}
 
 ### 5.2 Hapus payroll

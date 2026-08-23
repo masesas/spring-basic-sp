@@ -1,5 +1,6 @@
 package com.masesas.exercises.demo1.security;
 
+import com.masesas.exercises.demo1.dto.BaseApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +13,6 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -36,14 +36,6 @@ public class UnauthorizedHandler implements AuthenticationEntryPoint {
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
         objectMapper.writeValue(
                 response.getWriter(),
-                body(HttpStatus.UNAUTHORIZED, pesan));
-    }
-
-    private Map<String, Object> body(HttpStatus status, String message) {
-        return Map.of(
-                "timestamp", System.currentTimeMillis(),
-                "status", status.value(),
-                "error", status.getReasonPhrase(),
-                "message", message == null ? "" : message);
+                BaseApiResponse.error(HttpStatus.UNAUTHORIZED, pesan, "UNAUTHORIZED"));
     }
 }

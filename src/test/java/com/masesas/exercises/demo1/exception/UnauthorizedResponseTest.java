@@ -42,10 +42,9 @@ class UnauthorizedResponseTest {
         mockMvc.perform(get("/api/karyawan/all"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.status").value(401))
-                .andExpect(jsonPath("$.error").value("Unauthorized"))
-                .andExpect(jsonPath("$.message").value("Autentikasi diperlukan"))
-                .andExpect(jsonPath("$.timestamp").isNotEmpty());
+                .andExpect(jsonPath("$.statusCode").value(401))
+                .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"))
+                .andExpect(jsonPath("$.message").value("Autentikasi diperlukan"));
     }
 
     @Test
@@ -55,7 +54,7 @@ class UnauthorizedResponseTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer token.tidak.valid"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.statusCode").value(401))
                 .andExpect(jsonPath("$.message").value("Token tidak valid"));
     }
 
@@ -67,7 +66,7 @@ class UnauthorizedResponseTest {
                         .content("{\"username\":\"" + ADMIN + "\",\"password\":\"salah-sekali\"}"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.statusCode").value(401))
                 .andExpect(jsonPath("$.message").value("Username atau password salah"));
     }
 

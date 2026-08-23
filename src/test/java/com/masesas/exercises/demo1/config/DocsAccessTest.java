@@ -100,7 +100,7 @@ class DocsAccessTest {
                 .andExpect(jsonPath("$.paths['/api/karyawan/all'].get.responses.401").exists())
                 .andExpect(jsonPath("$.paths['/api/karyawan/all'].get.responses.403").exists())
                 .andExpect(jsonPath("$.paths['/api/karyawan/all'].get.responses.404.content['application/json'].schema.$ref")
-                        .value("#/components/schemas/ApiError"))
-                .andExpect(jsonPath("$.components.schemas.ApiError.properties.message.description").isNotEmpty());
+                        .value("#/components/schemas/BaseApiResponse"))
+                .andExpect(jsonPath("$.components.schemas.BaseApiResponse.properties.message.description").isNotEmpty());
     }
 }

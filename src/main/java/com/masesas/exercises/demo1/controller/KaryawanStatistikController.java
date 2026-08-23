@@ -1,5 +1,6 @@
 package com.masesas.exercises.demo1.controller;
 
+import com.masesas.exercises.demo1.dto.BaseApiResponse;
 import com.masesas.exercises.demo1.model.StatistikKaryawan;
 import com.masesas.exercises.demo1.service.KaryawanStatistikService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,10 +34,12 @@ public class KaryawanStatistikController {
             summary = "Jumlah karyawan pada satu status",
             description = "Memanggil stored procedure dengan satu OUT parameter.")
     @ApiResponse(responseCode = "200", description = "Status yang diminta beserta jumlahnya")
-    public Map<String, Object> total(
+    public BaseApiResponse<Map<String, Object>> total(
             @Parameter(description = STATUS, example = "AKTIF")
             @RequestParam(defaultValue = "AKTIF") String status) {
-        return Map.of("status", status, "total", service.totalByStatus(status));
+        return BaseApiResponse.ok(
+                "Status yang diminta beserta jumlahnya",
+                Map.of("status", status, "total", service.totalByStatus(status)));
     }
 
     @GetMapping
@@ -44,9 +47,9 @@ public class KaryawanStatistikController {
             summary = "Statistik lengkap karyawan pada satu status",
             description = "Memanggil stored procedure dengan beberapa OUT parameter sekaligus.")
     @ApiResponse(responseCode = "200", description = "Statistik karyawan")
-    public StatistikKaryawan statistik(
+    public BaseApiResponse<StatistikKaryawan> statistik(
             @Parameter(description = STATUS, example = "AKTIF")
             @RequestParam(defaultValue = "AKTIF") String status) {
-        return service.statistikByStatus(status);
+        return BaseApiResponse.ok("Statistik karyawan", service.statistikByStatus(status));
     }
 }

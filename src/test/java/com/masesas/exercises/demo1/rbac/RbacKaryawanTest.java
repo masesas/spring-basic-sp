@@ -65,9 +65,9 @@ class RbacKaryawanTest {
     void loginAdminMembawaPeranDariDatabase() throws Exception {
         mockMvc.perform(loginKaryawan(ADMIN, demoPassword))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").isNotEmpty())
-                .andExpect(jsonPath("$.tipe").value("KARYAWAN"))
-                .andExpect(jsonPath("$.roles[0]").value("ADMIN"));
+                .andExpect(jsonPath("$.data.token").isNotEmpty())
+                .andExpect(jsonPath("$.data.tipe").value("KARYAWAN"))
+                .andExpect(jsonPath("$.data.roles[0]").value("ADMIN"));
     }
 
     @Test
@@ -75,7 +75,7 @@ class RbacKaryawanTest {
     void karyawanBisaPunyaBanyakPeran() throws Exception {
         mockMvc.perform(loginKaryawan(MANAGER_SALES, demoPassword))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.roles.length()").value(2));
+                .andExpect(jsonPath("$.data.roles.length()").value(2));
     }
 
     @Test
@@ -121,7 +121,7 @@ class RbacKaryawanTest {
     void tanpaPeranLoginBerhasilAksesDitolak() throws Exception {
         mockMvc.perform(loginKaryawan(TANPA_ROLE, demoPassword))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.roles.length()").value(0));
+                .andExpect(jsonPath("$.data.roles.length()").value(0));
 
         mockMvc.perform(get("/api/karyawan/all")
                         .header(HttpHeaders.AUTHORIZATION, bearer(TANPA_ROLE)))

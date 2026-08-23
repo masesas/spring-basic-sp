@@ -24,12 +24,12 @@ Content-Type: application/json
         client.assert(response.status === 200, "status " + response.status);
     });
     client.test("peran ADMIN datang dari database", function () {
-        client.assert(response.body.roles.includes("ADMIN"), "roles = " + response.body.roles);
+        client.assert(response.body.data.roles.includes("ADMIN"), "roles = " + response.body.data.roles);
     });
     client.test("tipe principal KARYAWAN", function () {
-        client.assert(response.body.tipe === "KARYAWAN", "tipe " + response.body.tipe);
+        client.assert(response.body.data.tipe === "KARYAWAN", "tipe " + response.body.data.tipe);
     });
-    client.global.set("token", response.body.token);
+    client.global.set("token", response.body.data.token);
 
     const sekarang = new Date();
     const periode = sekarang.getFullYear() + "-"
@@ -106,7 +106,7 @@ Content-Type: application/json
 
 > {%
     client.test("201", function () { client.assert(response.status === 201, "status " + response.status); });
-    client.global.set("idBaru", response.body.id);
+    client.global.set("idBaru", response.body.data.id);
 %}
 
 ### 3.7 PUT /api/karyawan/{id} — 200 (hanya ADMIN & MANAGER)
@@ -149,7 +149,7 @@ Content-Type: image/png
 
 > {%
     client.test("200", function () { client.assert(response.status === 200, "status " + response.status); });
-    client.test("avatar terisi", function () { client.assert(response.body.avatar !== null, "avatar kosong"); });
+    client.test("avatar terisi", function () { client.assert(response.body.data.avatar !== null, "avatar kosong"); });
 %}
 
 ### 3.9 DELETE /api/karyawan/{id}/detail — 200 (hanya ADMIN & MANAGER)
@@ -173,7 +173,7 @@ Content-Type: application/json
 
 > {%
     client.test("201", function () { client.assert(response.status === 201, "status " + response.status); });
-    client.global.set("versiPayroll", response.body.version);
+    client.global.set("versiPayroll", response.body.data.version);
 %}
 
 ### 3.11 GET /api/payroll/{idKaryawan}/{periode} — 200
