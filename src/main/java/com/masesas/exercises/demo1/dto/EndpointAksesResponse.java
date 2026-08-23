@@ -20,7 +20,10 @@ public class EndpointAksesResponse {
     private final boolean isPublic;
     @Schema(description = "Peran yang diizinkan, kosong bila tidak dibatasi peran")
     private final List<String> roles;
-    @Schema(description = "True bila syarat aksesnya tidak hanya berupa pemeriksaan peran", example = "false")
+    @Schema(description = "Permission yang diizinkan, kosong bila endpoint dijaga peran saja")
+    private final List<String> permissions;
+    @Schema(description = "True bila syarat aksesnya tidak hanya berupa pemeriksaan peran "
+            + "atau permission", example = "false")
     private final boolean conditional;
     @Schema(description = "Ekspresi @PreAuthorize apa adanya", example = "hasAnyRole('ADMIN','MANAGER')")
     private final String expressions;

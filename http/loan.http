@@ -1,0 +1,406 @@
+### ===========================================================================
+### MODUL PINJAMAN — alur status dan RBAC-nya
+###
+### Berkas ini TIDAK dijalankan runner.py (namanya sengaja tanpa awalan
+### `role-`). Alurnya mengubah plafond customer secara permanen, jadi kalau
+### ikut dijalankan berulang di CI plafondnya akan habis dan berkas ini mulai
+### gagal karena kehabisan kuota — bukan karena ada yang rusak.
+###
+### Yang dibuktikan di sini:
+###   * pengajuan dibuat customer sendiri, pemiliknya diambil dari token
+###   * MARKETING boleh membaca pengajuan tapi tidak boleh menyetujui
+###   * MANAGER boleh menyetujui tapi TIDAK boleh mencairkan
+###   * ADMIN boleh mencairkan
+###   * pencairan memakai plafond, pembayaran angsuran mengembalikannya
+###
+### Semua penjagaan di atas datang dari tabel role_permission, bukan dari
+### daftar peran yang ditulis di anotasi.
+###
+### Customer diregistrasi baru tiap kali dijalankan (emailnya memakai
+### {{$timestamp}}), jadi tidak ada baris yang perlu dibersihkan lebih dulu.
+### Baris pengajuan dan pembayaran yang dihasilkan memang menetap: modul ini
+### sengaja tidak punya endpoint hapus untuk catatan finansial.
+### ===========================================================================
+
+
+### ---------------------------------------------------------------------------
+### 1. Token untuk tiga peran pegawai
+### ---------------------------------------------------------------------------
+
+### 1.1 Login ADMIN
+POST {{baseUrl}}/api/auth/karyawan/login
+Content-Type: application/json
+
+{
+  "username": "{{emailAdmin}}",
+  "password": "{{demoPassword}}"
+}
+
+> {%
+    client.test("login berhasil", function () {
+        client.assert(response.status === 200, "status " + response.status);
+    });
+    client.global.set("tokenAdmin", response.body.data.token);
+%}
+
+### 1.2 Login MANAGER
+POST {{baseUrl}}/api/auth/karyawan/login
+Content-Type: application/json
+
+{
+  "username": "{{emailManager}}",
+  "password": "{{demoPassword}}"
+}
+
+> {%
+    client.test("login berhasil", function () {
+        client.assert(response.status === 200, "status " + response.status);
+    });
+    client.global.set("tokenManager", response.body.data.token);
+%}
+
+### 1.3 Login MARKETING
+POST {{baseUrl}}/api/auth/karyawan/login
+Content-Type: application/json
+
+{
+  "username": "{{emailMarketing}}",
+  "password": "{{demoPassword}}"
+}
+
+> {%
+    client.test("login berhasil", function () {
+        client.assert(response.status === 200, "status " + response.status);
+    });
+    client.global.set("tokenMarketing", response.body.data.token);
+%}
+
+
+### ---------------------------------------------------------------------------
+### 2. Master pinjaman
+### ---------------------------------------------------------------------------
+
+### 2.1 GET /api/loan-product — MARKETING boleh membaca master
+GET {{baseUrl}}/api/loan-product
+Authorization: Bearer {{tokenMarketing}}
+
+> {%
+    client.test("200", function () {
+        client.assert(response.status === 200, "status " + response.status);
+    });
+    client.global.set("idProduk", response.body.data[0].id);
+%}
+
+### 2.2 POST /api/loan-product — MARKETING tidak boleh mengubah master, 403
+POST {{baseUrl}}/api/loan-product
+Authorization: Bearer {{tokenMarketing}}
+Content-Type: application/json
+
+{
+  "kode": "TOLAK",
+  "nama": "Tidak akan tersimpan",
+  "bungaPersen": 10.00,
+  "tenorMin": 6,
+  "tenorMax": 12,
+  "plafondMin": 1000000.00,
+  "plafondMax": 5000000.00
+}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 2.3 GET /api/loan-document-type — jenis dokumen yang wajib dilampirkan
+GET {{baseUrl}}/api/loan-document-type
+Authorization: Bearer {{tokenAdmin}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 2.4 GET /api/branch
+GET {{baseUrl}}/api/branch
+Authorization: Bearer {{tokenAdmin}}
+
+> {%
+    client.test("200", function () {
+        client.assert(response.status === 200, "status " + response.status);
+    });
+    client.global.set("idBranch", response.body.data[0].id);
+%}
+
+### 2.5 GET /api/role-permission/role/2 — izin yang dipegang MANAGER
+GET {{baseUrl}}/api/role-permission/role/2
+Authorization: Bearer {{tokenAdmin}}
+
+> {%
+    client.test("MANAGER memegang approve tetapi tidak memegang disburse", function () {
+        const kode = response.body.data.map(function (satu) { return satu.kodePermission; });
+        client.assert(kode.includes("LOAN_APPLICATION_APPROVE"), "tidak ada approve: " + kode);
+        client.assert(!kode.includes("LOAN_APPLICATION_DISBURSE"), "disburse ikut terpegang: " + kode);
+    });
+%}
+
+
+### ---------------------------------------------------------------------------
+### 3. Customer baru beserta plafondnya
+### ---------------------------------------------------------------------------
+
+### 3.1 Register customer uji
+POST {{baseUrl}}/api/auth/customer/register
+Content-Type: application/json
+
+{
+  "nama": "Customer Uji Pinjaman",
+  "email": "loan.{{$timestamp}}@masesas.test",
+  "password": "{{demoPassword}}"
+}
+
+> {%
+    client.test("201", function () {
+        client.assert(response.status === 201, "status " + response.status);
+    });
+    client.global.set("emailUji", response.body.data.email);
+    client.global.set("idCustomerUji", response.body.data.id);
+%}
+
+### 3.2 Login customer uji
+POST {{baseUrl}}/api/auth/customer/login
+Content-Type: application/json
+
+{
+  "username": "{{emailUji}}",
+  "password": "{{demoPassword}}"
+}
+
+> {%
+    client.test("login berhasil", function () {
+        client.assert(response.status === 200, "status " + response.status);
+    });
+    client.global.set("tokenCustomer", response.body.data.token);
+%}
+
+### 3.3 ADMIN menetapkan plafond 30 juta
+PUT {{baseUrl}}/api/loan-plafond
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "idCustomer": {{idCustomerUji}},
+  "plafondTotal": 30000000.00
+}
+
+> {%
+    client.test("plafond penuh saat pertama ditetapkan", function () {
+        client.assert(response.status === 200, "status " + response.status);
+        client.assert(response.body.data.sisa === 30000000.00, "sisa " + response.body.data.sisa);
+    });
+%}
+
+
+### ---------------------------------------------------------------------------
+### 4. Alur status pengajuan
+### ---------------------------------------------------------------------------
+
+### 4.1 Customer membuat pengajuan — status DRAFT
+POST {{baseUrl}}/api/customer/loan-application
+Authorization: Bearer {{tokenCustomer}}
+Content-Type: application/json
+
+{
+  "idLoanProduct": {{idProduk}},
+  "idBranch": {{idBranch}},
+  "jumlahPengajuan": 10000000.00,
+  "tenorBulan": 12
+}
+
+> {%
+    client.test("201 dan berstatus DRAFT", function () {
+        client.assert(response.status === 201, "status " + response.status);
+        client.assert(response.body.data.status === "DRAFT", "status " + response.body.data.status);
+    });
+    client.global.set("idPengajuan", response.body.data.id);
+%}
+
+### 4.2 Customer mengirim pengajuan — DRAFT menjadi SUBMITTED
+POST {{baseUrl}}/api/customer/loan-application/{{idPengajuan}}/submit
+Authorization: Bearer {{tokenCustomer}}
+
+> {%
+    client.test("200 dan berstatus SUBMITTED", function () {
+        client.assert(response.status === 200, "status " + response.status);
+        client.assert(response.body.data.status === "SUBMITTED", "status " + response.body.data.status);
+    });
+%}
+
+### 4.3 Customer tidak bisa merevisi pengajuan yang sudah dikirim — 422
+PUT {{baseUrl}}/api/customer/loan-application/{{idPengajuan}}
+Authorization: Bearer {{tokenCustomer}}
+Content-Type: application/json
+
+{
+  "idLoanProduct": {{idProduk}},
+  "jumlahPengajuan": 20000000.00,
+  "tenorBulan": 24
+}
+
+> {% client.test("422", function () { client.assert(response.status === 422, "status " + response.status); }); %}
+
+### 4.4 MARKETING membaca pengajuan — 200
+GET {{baseUrl}}/api/loan-application/{{idPengajuan}}
+Authorization: Bearer {{tokenMarketing}}
+
+> {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
+
+### 4.5 MARKETING menyetujui — 403, tidak memegang LOAN_APPLICATION_APPROVE
+POST {{baseUrl}}/api/loan-application/{{idPengajuan}}/approve
+Authorization: Bearer {{tokenMarketing}}
+Content-Type: application/json
+
+{
+  "catatan": "tidak akan tersimpan"
+}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 4.6 MANAGER menyetujui — 200, SUBMITTED menjadi APPROVED
+POST {{baseUrl}}/api/loan-application/{{idPengajuan}}/approve
+Authorization: Bearer {{tokenManager}}
+Content-Type: application/json
+
+{
+  "catatan": "verifikasi lolos"
+}
+
+> {%
+    client.test("200 dan berstatus APPROVED", function () {
+        client.assert(response.status === 200, "status " + response.status);
+        client.assert(response.body.data.status === "APPROVED", "status " + response.body.data.status);
+    });
+%}
+
+### 4.7 MANAGER mencairkan — 403, pemisahan tugas dengan yang menyetujui
+POST {{baseUrl}}/api/loan-application/{{idPengajuan}}/disburse
+Authorization: Bearer {{tokenManager}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 4.8 ADMIN mencairkan — 200, APPROVED menjadi DISBURSED
+POST {{baseUrl}}/api/loan-application/{{idPengajuan}}/disburse
+Authorization: Bearer {{tokenAdmin}}
+
+> {%
+    client.test("200 dan berstatus DISBURSED", function () {
+        client.assert(response.status === 200, "status " + response.status);
+        client.assert(response.body.data.status === "DISBURSED", "status " + response.body.data.status);
+    });
+%}
+
+### 4.9 Plafond berkurang sebesar nilai pinjaman
+GET {{baseUrl}}/api/loan-plafond/customer/{{idCustomerUji}}
+Authorization: Bearer {{tokenAdmin}}
+
+> {%
+    client.test("sisa plafond 20 juta", function () {
+        client.assert(response.status === 200, "status " + response.status);
+        client.assert(response.body.data.sisa === 20000000.00, "sisa " + response.body.data.sisa);
+    });
+%}
+
+
+### ---------------------------------------------------------------------------
+### 5. Pembayaran angsuran
+### ---------------------------------------------------------------------------
+
+### 5.1 MARKETING mencatat pembayaran — 403
+POST {{baseUrl}}/api/loan-payment
+Authorization: Bearer {{tokenMarketing}}
+Content-Type: application/json
+
+{
+  "idLoanApplication": {{idPengajuan}},
+  "angsuranKe": 1,
+  "jumlahBayar": 4000000.00,
+  "tanggalBayar": "2026-01-31",
+  "metode": "TRANSFER"
+}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 5.2 ADMIN mencatat angsuran pertama — 201
+POST {{baseUrl}}/api/loan-payment
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "idLoanApplication": {{idPengajuan}},
+  "angsuranKe": 1,
+  "jumlahBayar": 4000000.00,
+  "tanggalBayar": "2026-01-31",
+  "metode": "TRANSFER"
+}
+
+> {% client.test("201", function () { client.assert(response.status === 201, "status " + response.status); }); %}
+
+### 5.3 Angsuran dengan nomor yang sama ditolak — 409
+POST {{baseUrl}}/api/loan-payment
+Authorization: Bearer {{tokenAdmin}}
+Content-Type: application/json
+
+{
+  "idLoanApplication": {{idPengajuan}},
+  "angsuranKe": 1,
+  "jumlahBayar": 1000000.00,
+  "tanggalBayar": "2026-02-28",
+  "metode": "TUNAI"
+}
+
+> {% client.test("409", function () { client.assert(response.status === 409, "status " + response.status); }); %}
+
+### 5.4 Pembayaran mengembalikan sebagian plafond
+GET {{baseUrl}}/api/loan-plafond/customer/{{idCustomerUji}}
+Authorization: Bearer {{tokenAdmin}}
+
+> {%
+    client.test("sisa plafond naik menjadi 24 juta", function () {
+        client.assert(response.body.data.sisa === 24000000.00, "sisa " + response.body.data.sisa);
+    });
+%}
+
+### 5.5 Riwayat pembayaran satu pinjaman
+GET {{baseUrl}}/api/loan-payment/application/{{idPengajuan}}
+Authorization: Bearer {{tokenAdmin}}
+
+> {%
+    client.test("satu angsuran tercatat", function () {
+        client.assert(response.status === 200, "status " + response.status);
+        client.assert(response.body.data.length === 1, "jumlah " + response.body.data.length);
+    });
+%}
+
+
+### ---------------------------------------------------------------------------
+### 6. Batas kepemilikan data customer
+### ---------------------------------------------------------------------------
+
+### 6.1 Customer melihat daftar pengajuannya sendiri
+GET {{baseUrl}}/api/customer/loan-application
+Authorization: Bearer {{tokenCustomer}}
+
+> {%
+    client.test("hanya memuat pengajuan sendiri", function () {
+        client.assert(response.status === 200, "status " + response.status);
+        const bukanMiliknya = response.body.data.filter(function (satu) {
+            return satu.idCustomer !== Number(client.global.get("idCustomerUji"));
+        });
+        client.assert(bukanMiliknya.length === 0, "ada pengajuan milik orang lain");
+    });
+%}
+
+### 6.2 Customer tidak bisa masuk endpoint pemrosesan pegawai — 403
+GET {{baseUrl}}/api/loan-application
+Authorization: Bearer {{tokenCustomer}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
+
+### 6.3 Pegawai tidak bisa memakai endpoint pengajuan customer — 403
+GET {{baseUrl}}/api/customer/loan-application
+Authorization: Bearer {{tokenManager}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}

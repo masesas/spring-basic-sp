@@ -54,7 +54,26 @@ class RbacSuperadminTest {
 
         assertThat(superadmin.getRoles()).containsExactly(AppUser.ROLE_SUPERADMIN);
         assertThat(superadmin.getAuthorities().stream().map(GrantedAuthority::getAuthority))
-                .containsExactly("ROLE_SUPERADMIN", AppUser.ROLE_GUEST);
+                .contains("ROLE_SUPERADMIN", AppUser.ROLE_GUEST)
+                .doesNotContain("ROLE_ADMIN", "ROLE_MANAGER", "ROLE_HR");
+    }
+
+    @Test
+    @DisplayName("RoleHierarchy tidak mengimplikasikan permission, jadi SUPERADMIN memegangnya dari tabel")
+    void permissionSuperadminDatangDariTabelBukanHierarki() {
+        AppUser superadmin = userDetailsService.findKaryawan(SUPERADMIN).orElseThrow();
+
+        assertThat(superadmin.getPermissions())
+                .contains("LOAN_APPLICATION_APPROVE", "LOAN_APPLICATION_DISBURSE");
+
+        List<String> dijangkauHierarki = roleHierarchy
+                .getReachableGrantedAuthorities(
+                        List.of(new SimpleGrantedAuthority("ROLE_" + AppUser.ROLE_SUPERADMIN)))
+                .stream()
+                .map(GrantedAuthority::getAuthority)
+                .toList();
+
+        assertThat(dijangkauHierarki).doesNotContain("LOAN_APPLICATION_APPROVE");
     }
 
     @Test
