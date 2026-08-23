@@ -177,4 +177,6 @@ public class PayrollServiceImpl implements PayrollService {
         return karyawanRepository.findByIdAndDeletedDateIsNull(idKaryawan)
                 .orElseThrow(() -> new ResourceNotFoundException("Karyawan", idKaryawan));
     }
+
+    // this is changes from feat/test
 }

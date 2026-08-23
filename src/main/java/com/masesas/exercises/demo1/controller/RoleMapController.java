@@ -1,5 +1,6 @@
 package com.masesas.exercises.demo1.controller;
 
+import com.masesas.exercises.demo1.dto.BaseApiResponse;
 import com.masesas.exercises.demo1.dto.EndpointAksesResponse;
 import com.masesas.exercises.demo1.dto.RoleAksesResponse;
 import com.masesas.exercises.demo1.service.RoleMapService;
@@ -8,7 +9,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,8 +30,8 @@ public class RoleMapController {
             summary = "Daftar seluruh endpoint beserta peran yang diizinkan",
             description = "Ikut menandai endpoint mana yang publik.")
     @ApiResponse(responseCode = "200", description = "Daftar endpoint")
-    public ResponseEntity<List<EndpointAksesResponse>> semua() {
-        return ResponseEntity.ok(roleMapService.semua());
+    public BaseApiResponse<List<EndpointAksesResponse>> semua() {
+        return BaseApiResponse.ok("Daftar endpoint", roleMapService.semua());
     }
 
     @GetMapping("/matriks")
@@ -39,16 +39,16 @@ public class RoleMapController {
             summary = "Matriks akses untuk semua peran",
             description = "Satu entri per peran, masing-masing berisi endpoint yang bisa diaksesnya.")
     @ApiResponse(responseCode = "200", description = "Matriks akses")
-    public ResponseEntity<List<RoleAksesResponse>> matriks() {
-        return ResponseEntity.ok(roleMapService.semuaPeran());
+    public BaseApiResponse<List<RoleAksesResponse>> matriks() {
+        return BaseApiResponse.ok("Matriks akses", roleMapService.semuaPeran());
     }
 
     @GetMapping("/{peran}")
     @Operation(summary = "Endpoint yang bisa diakses satu peran tertentu")
     @ApiResponse(responseCode = "200", description = "Daftar endpoint untuk peran tersebut")
-    public ResponseEntity<RoleAksesResponse> perPeran(
+    public BaseApiResponse<RoleAksesResponse> perPeran(
             @Parameter(description = "Nama peran, huruf besar-kecil bebas", example = "ADMIN")
             @PathVariable String peran) {
-        return ResponseEntity.ok(roleMapService.untukPeran(peran));
+        return BaseApiResponse.ok("Daftar endpoint untuk peran tersebut", roleMapService.untukPeran(peran));
     }
 }

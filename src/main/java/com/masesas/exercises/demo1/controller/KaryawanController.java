@@ -1,5 +1,6 @@
 package com.masesas.exercises.demo1.controller;
 
+import com.masesas.exercises.demo1.dto.BaseApiResponse;
 import com.masesas.exercises.demo1.dto.CreateKaryawanRequest;
 import com.masesas.exercises.demo1.dto.DetailKaryawanRequest;
 import com.masesas.exercises.demo1.dto.KaryawanResponse;
@@ -12,7 +13,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -31,6 +31,8 @@ import java.util.List;
 @SecurityRequirement(name = "karyawanAuth")
 public class KaryawanController {
 
+    private static final String PESAN_HALAMAN = "Satu halaman karyawan";
+
     private final KaryawanService karyawanService;
 
     @PostMapping
@@ -40,17 +42,17 @@ public class KaryawanController {
             summary = "Buat karyawan baru",
             description = "Butuh peran ADMIN atau MANAGER. Email harus belum terpakai.")
     @ApiResponse(responseCode = "201", description = "Karyawan dibuat")
-    public KaryawanResponse create(@Valid @RequestBody CreateKaryawanRequest request) {
-        return karyawanService.create(request);
+    public BaseApiResponse<KaryawanResponse> create(@Valid @RequestBody CreateKaryawanRequest request) {
+        return BaseApiResponse.created("Karyawan dibuat", karyawanService.create(request));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Ambil satu karyawan berdasarkan id")
     @ApiResponse(responseCode = "200", description = "Karyawan ditemukan")
-    public KaryawanResponse findById(
+    public BaseApiResponse<KaryawanResponse> findById(
             @Parameter(description = "ID karyawan", example = "1")
             @PathVariable Integer id) {
-        return karyawanService.findById(id);
+        return BaseApiResponse.ok("Karyawan ditemukan", karyawanService.findById(id));
     }
 
     @GetMapping
@@ -58,9 +60,9 @@ public class KaryawanController {
             summary = "Daftar karyawan dengan paging standar Spring Data",
             description = "Memakai parameter page, size, dan sort — contoh: "
                     + "?page=0&size=10&sort=nama,asc. Ukuran halaman maksimal 100.")
-    @ApiResponse(responseCode = "200", description = "Satu halaman karyawan")
-    public Page<KaryawanResponse> findAll(Pageable pageable) {
-        return karyawanService.findAll(pageable);
+    @ApiResponse(responseCode = "200", description = PESAN_HALAMAN)
+    public BaseApiResponse<List<KaryawanResponse>> findAll(Pageable pageable) {
+        return BaseApiResponse.page(PESAN_HALAMAN, karyawanService.findAll(pageable));
     }
 
     @GetMapping("/page")
@@ -69,13 +71,13 @@ public class KaryawanController {
             summary = "Daftar karyawan dengan paging manual",
             description = "Butuh peran ADMIN. Nomor halaman dan ukurannya ditulis sebagai "
                     + "parameter biasa, bukan lewat Pageable.")
-    @ApiResponse(responseCode = "200", description = "Satu halaman karyawan")
-    public Page<KaryawanResponse> findPage(
+    @ApiResponse(responseCode = "200", description = PESAN_HALAMAN)
+    public BaseApiResponse<List<KaryawanResponse>> findPage(
             @Parameter(description = "Nomor halaman, dimulai dari 0", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Jumlah baris per halaman", example = "10")
             @RequestParam(defaultValue = "10") int size) {
-        return karyawanService.findPage(page, size);
+        return BaseApiResponse.page(PESAN_HALAMAN, karyawanService.findPage(page, size));
     }
 
     @GetMapping("/search")
@@ -83,14 +85,15 @@ public class KaryawanController {
             summary = "Cari karyawan berdasarkan nama",
             description = "Pencarian mengandung (contains), tidak membedakan huruf besar-kecil.")
     @ApiResponse(responseCode = "200", description = "Satu halaman hasil pencarian")
-    public Page<KaryawanResponse> findPageByNama(
+    public BaseApiResponse<List<KaryawanResponse>> findPageByNama(
             @Parameter(description = "Potongan nama yang dicari", example = "budi")
             @RequestParam String nama,
             @Parameter(description = "Nomor halaman, dimulai dari 0", example = "0")
             @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Jumlah baris per halaman", example = "10")
             @RequestParam(defaultValue = "10") int size) {
-        return karyawanService.findPageByNama(nama, page, size);
+        return BaseApiResponse.page(
+                "Satu halaman hasil pencarian", karyawanService.findPageByNama(nama, page, size));
     }
 
     @GetMapping("/all")
@@ -99,8 +102,8 @@ public class KaryawanController {
             description = "Hasilnya disimpan di cache Redis dan dibatalkan otomatis "
                     + "setiap kali ada perubahan data karyawan.")
     @ApiResponse(responseCode = "200", description = "Seluruh karyawan")
-    public List<KaryawanResponse> findAllWithoutPaging() {
-        return karyawanService.findAll();
+    public BaseApiResponse<List<KaryawanResponse>> findAllWithoutPaging() {
+        return BaseApiResponse.ok("Seluruh karyawan", karyawanService.findAll());
     }
 
     @PutMapping("/{id}")
@@ -109,11 +112,11 @@ public class KaryawanController {
             summary = "Ubah data karyawan",
             description = "Butuh peran ADMIN atau MANAGER.")
     @ApiResponse(responseCode = "200", description = "Karyawan diperbarui")
-    public KaryawanResponse update(
+    public BaseApiResponse<KaryawanResponse> update(
             @Parameter(description = "ID karyawan", example = "1")
             @PathVariable Integer id,
             @Valid @RequestBody UpdateKaryawanRequest request) {
-        return karyawanService.update(id, request);
+        return BaseApiResponse.ok("Karyawan diperbarui", karyawanService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
@@ -137,11 +140,11 @@ public class KaryawanController {
             description = "Butuh peran ADMIN atau MANAGER. Kolom nik dan npwp disimpan "
                     + "terenkripsi di database.")
     @ApiResponse(responseCode = "200", description = "Detail tersimpan")
-    public KaryawanResponse upsertDetail(
+    public BaseApiResponse<KaryawanResponse> upsertDetail(
             @Parameter(description = "ID karyawan", example = "1")
             @PathVariable Integer id,
             @Valid @RequestBody DetailKaryawanRequest request) {
-        return karyawanService.upsertDetail(id, request);
+        return BaseApiResponse.ok("Detail tersimpan", karyawanService.upsertDetail(id, request));
     }
 
     @DeleteMapping("/{id}/detail")
@@ -150,10 +153,10 @@ public class KaryawanController {
             summary = "Hapus detail karyawan saja",
             description = "Butuh peran ADMIN atau MANAGER. Data induk karyawannya tetap ada.")
     @ApiResponse(responseCode = "200", description = "Detail dihapus")
-    public KaryawanResponse removeDetail(
+    public BaseApiResponse<KaryawanResponse> removeDetail(
             @Parameter(description = "ID karyawan", example = "1")
             @PathVariable Integer id) {
-        return karyawanService.removeDetail(id);
+        return BaseApiResponse.ok("Detail dihapus", karyawanService.removeDetail(id));
     }
 
     @PostMapping(
@@ -165,11 +168,11 @@ public class KaryawanController {
             description = "Berkas dikirim sebagai multipart dengan nama bagian file. "
                     + "Ukuran maksimal 2 MB.")
     @ApiResponse(responseCode = "200", description = "Avatar tersimpan")
-    public KaryawanResponse uploadAvatar(
+    public BaseApiResponse<KaryawanResponse> uploadAvatar(
             @Parameter(description = "ID karyawan", example = "1")
             @PathVariable Integer id,
             @RequestPart("file") MultipartFile file
     ) {
-        return karyawanService.uploadAvatar(id, file);
+        return BaseApiResponse.ok("Avatar tersimpan", karyawanService.uploadAvatar(id, file));
     }
 }

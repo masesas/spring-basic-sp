@@ -68,9 +68,9 @@ class KaryawanControllerTest {
 
             mockMvc.perform(post("/api/karyawan").contentType(MediaType.APPLICATION_JSON).content(BODY_VALID))
                     .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.id").value(ID))
-                    .andExpect(jsonPath("$.nama").value("Budi"))
-                    .andExpect(jsonPath("$.status").value("AKTIF"));
+                    .andExpect(jsonPath("$.data.id").value(ID))
+                    .andExpect(jsonPath("$.data.nama").value("Budi"))
+                    .andExpect(jsonPath("$.data.status").value("AKTIF"));
 
             verify(karyawanService).create(any(CreateKaryawanRequest.class));
         }
@@ -155,8 +155,8 @@ class KaryawanControllerTest {
 
             mockMvc.perform(get(BASE + "/" + ID))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(ID))
-                    .andExpect(jsonPath("$.detail.nik").value("************3456"));
+                    .andExpect(jsonPath("$.data.id").value(ID))
+                    .andExpect(jsonPath("$.data.detail.nik").value("************3456"));
         }
 
 
@@ -169,7 +169,7 @@ class KaryawanControllerTest {
 
             mockMvc.perform(get(BASE + "/" + ID_TIDAK_ADA))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.status").value(404));
+                    .andExpect(jsonPath("$.statusCode").value(404));
         }
 
         @Test
@@ -192,7 +192,7 @@ class KaryawanControllerTest {
 
             mockMvc.perform(get(BASE).param("page", "1").param("size", "5"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.content[0].nama").value("Budi"));
+                    .andExpect(jsonPath("$.data[0].nama").value("Budi"));
 
             var pageable = org.mockito.ArgumentCaptor.forClass(Pageable.class);
             verify(karyawanService).findAll(pageable.capture());
@@ -208,7 +208,7 @@ class KaryawanControllerTest {
 
             mockMvc.perform(get(BASE + "/page"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.content[0].id").value(ID));
+                    .andExpect(jsonPath("$.data[0].id").value(ID));
 
             verify(karyawanService).findPage(0, 10);
         }
@@ -232,7 +232,7 @@ class KaryawanControllerTest {
 
             mockMvc.perform(get(BASE + "/search").param("nama", "bud"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.content[0].nama").value("Budi"));
+                    .andExpect(jsonPath("$.data[0].nama").value("Budi"));
 
             verify(karyawanService).findPageByNama("bud", 0, 10);
         }
@@ -255,8 +255,8 @@ class KaryawanControllerTest {
 
             mockMvc.perform(get(BASE + "/all"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$").isArray())
-                    .andExpect(jsonPath("$[0].nama").value("Budi"));
+                    .andExpect(jsonPath("$.data").isArray())
+                    .andExpect(jsonPath("$.data[0].nama").value("Budi"));
         }
 
         @Test
@@ -282,7 +282,7 @@ class KaryawanControllerTest {
 
             mockMvc.perform(put(BASE + "/" + ID).contentType(MediaType.APPLICATION_JSON).content(BODY_VALID))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(ID));
+                    .andExpect(jsonPath("$.data.id").value(ID));
 
             verify(karyawanService).update(eq(ID), any(UpdateKaryawanRequest.class));
         }
@@ -370,7 +370,7 @@ class KaryawanControllerTest {
             mockMvc.perform(put(BASE + "/" + ID + "/detail")
                             .contentType(MediaType.APPLICATION_JSON).content(BODY_DETAIL_VALID))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.detail.npwp").value("***********2345"));
+                    .andExpect(jsonPath("$.data.detail.npwp").value("***********2345"));
         }
 
         @Test
@@ -405,7 +405,7 @@ class KaryawanControllerTest {
 
             mockMvc.perform(delete(BASE + "/" + ID + "/detail"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.detail").doesNotExist());
+                    .andExpect(jsonPath("$.data.detail").doesNotExist());
 
             verify(karyawanService).removeDetail(ID);
         }
@@ -441,8 +441,8 @@ class KaryawanControllerTest {
 
             mockMvc.perform(multipart(BASE + "/" + ID + "/avatar").file(berkas()))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.id").value(ID))
-                    .andExpect(jsonPath("$.avatar").value("karyawan/baru.png"));
+                    .andExpect(jsonPath("$.data.id").value(ID))
+                    .andExpect(jsonPath("$.data.avatar").value("karyawan/baru.png"));
 
             verify(karyawanService).uploadAvatar(eq(ID), any(MultipartFile.class));
         }
@@ -475,6 +475,85 @@ class KaryawanControllerTest {
         void uploadAvatar_tanpaAutentikasi_ditolak() throws Exception {
             mockMvc.perform(multipart(BASE + "/" + ID + "/avatar").file(berkas()))
                     .andExpect(status().is4xxClientError());
+
+            verifyNoInteractions(karyawanService);
+        }
+    }
+
+    @Nested
+    @DisplayName("bentuk BaseApiResponse")
+    class BentukEnvelope {
+
+        @Test
+        @WithMockUser(roles = "KARYAWAN")
+        @DisplayName("response tunggal memuat statusCode dan message, tanpa meta dan error")
+        void tunggal_tanpaMetaDanError() throws Exception {
+            when(karyawanService.findById(ID)).thenReturn(responseKaryawan());
+
+            mockMvc.perform(get(BASE + "/" + ID))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.statusCode").value(200))
+                    .andExpect(jsonPath("$.message").value("Karyawan ditemukan"))
+                    .andExpect(jsonPath("$.meta").doesNotExist())
+                    .andExpect(jsonPath("$.error").doesNotExist());
+        }
+
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        @DisplayName("statusCode pada pembuatan karyawan bernilai 201, sama dengan status HTTP")
+        void create_statusCodeIkutStatusHttp() throws Exception {
+            when(karyawanService.create(any(CreateKaryawanRequest.class))).thenReturn(responseKaryawan());
+
+            mockMvc.perform(post(BASE).contentType(MediaType.APPLICATION_JSON).content(BODY_VALID))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.statusCode").value(201));
+        }
+
+        @Test
+        @WithMockUser(roles = "KARYAWAN")
+        @DisplayName("response berpaginasi menaruh baris di data dan informasi paging di meta")
+        void berpaginasi_dataDanMeta() throws Exception {
+            when(karyawanService.findAll(any(Pageable.class)))
+                    .thenReturn(new PageImpl<>(List.of(responseKaryawan()), PageRequest.of(1, 5), 6));
+
+            mockMvc.perform(get(BASE).param("page", "1").param("size", "5"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data").isArray())
+                    .andExpect(jsonPath("$.meta.page").value(1))
+                    .andExpect(jsonPath("$.meta.size").value(5))
+                    .andExpect(jsonPath("$.meta.totalElements").value(6))
+                    .andExpect(jsonPath("$.meta.totalPages").value(2))
+                    .andExpect(jsonPath("$.error").doesNotExist());
+        }
+
+        @Test
+        @WithMockUser(roles = "KARYAWAN")
+        @DisplayName("kegagalan memuat error.code dengan data null dan tanpa meta")
+        void gagal_memuatErrorCode() throws Exception {
+            when(karyawanService.findById(ID_TIDAK_ADA))
+                    .thenThrow(new ResourceNotFoundException("Karyawan", ID_TIDAK_ADA));
+
+            mockMvc.perform(get(BASE + "/" + ID_TIDAK_ADA))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.statusCode").value(404))
+                    .andExpect(jsonPath("$.data").doesNotExist())
+                    .andExpect(jsonPath("$.meta").doesNotExist())
+                    .andExpect(jsonPath("$.error.code").value("NOT_FOUND"))
+                    .andExpect(jsonPath("$.error.details").doesNotExist());
+        }
+
+        @Test
+        @WithMockUser(roles = "ADMIN")
+        @DisplayName("kegagalan validasi memuat error.details satu entri per field")
+        void validasiGagal_memuatDetails() throws Exception {
+            mockMvc.perform(post(BASE).contentType(MediaType.APPLICATION_JSON).content("""
+                            {"nama":"","alamat":"Jakarta","dob":"1990-01-01","status":"AKTIF"}
+                            """))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
+                    .andExpect(jsonPath("$.error.details").isArray())
+                    .andExpect(jsonPath("$.error.details[0]")
+                            .value(org.hamcrest.Matchers.containsString("nama")));
 
             verifyNoInteractions(karyawanService);
         }

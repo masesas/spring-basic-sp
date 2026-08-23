@@ -24,7 +24,7 @@ class RoleMapControllerTest {
     void semua_tanpaToken() throws Exception {
         mockMvc.perform(get("/api/rolemap"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.path=='/api/karyawan/all')]").isNotEmpty());
+                .andExpect(jsonPath("$.data[?(@.path=='/api/karyawan/all')]").isNotEmpty());
     }
 
     @Test
@@ -32,9 +32,9 @@ class RoleMapControllerTest {
     void semua_methodLevelMenimpaClassLevel() throws Exception {
         mockMvc.perform(get("/api/rolemap"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.path=='/api/karyawan' && @.method=='POST')].roles[0]")
+                .andExpect(jsonPath("$.data[?(@.path=='/api/karyawan' && @.method=='POST')].roles[0]")
                         .value("ADMIN"))
-                .andExpect(jsonPath("$[?(@.path=='/api/karyawan' && @.method=='POST')].roles[1]")
+                .andExpect(jsonPath("$.data[?(@.path=='/api/karyawan' && @.method=='POST')].roles[1]")
                         .value("MANAGER"));
     }
 
@@ -43,7 +43,7 @@ class RoleMapControllerTest {
     void semua_tidakAdaEkspresiKondisional() throws Exception {
         mockMvc.perform(get("/api/rolemap"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.conditional==true)]").isEmpty());
+                .andExpect(jsonPath("$.data[?(@.conditional==true)]").isEmpty());
     }
 
     @Test
@@ -51,9 +51,9 @@ class RoleMapControllerTest {
     void perPeran_guestHanyaPublik() throws Exception {
         mockMvc.perform(get("/api/rolemap/GUEST"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.peran").value("GUEST"))
-                .andExpect(jsonPath("$.endpoint[?(@.public==false)]").isEmpty())
-                .andExpect(jsonPath("$.endpoint[?(@.path=='/api/auth/karyawan/login')]").isNotEmpty());
+                .andExpect(jsonPath("$.data.peran").value("GUEST"))
+                .andExpect(jsonPath("$.data.endpoint[?(@.public==false)]").isEmpty())
+                .andExpect(jsonPath("$.data.endpoint[?(@.path=='/api/auth/karyawan/login')]").isNotEmpty());
     }
 
     @Test
@@ -61,9 +61,9 @@ class RoleMapControllerTest {
     void perPeran_customer() throws Exception {
         mockMvc.perform(get("/api/rolemap/customer"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.peran").value("CUSTOMER"))
-                .andExpect(jsonPath("$.endpoint[?(@.path=='/api/customer/me')]").isNotEmpty())
-                .andExpect(jsonPath("$.endpoint[?(@.path=='/api/karyawan/all')]").isEmpty());
+                .andExpect(jsonPath("$.data.peran").value("CUSTOMER"))
+                .andExpect(jsonPath("$.data.endpoint[?(@.path=='/api/customer/me')]").isNotEmpty())
+                .andExpect(jsonPath("$.data.endpoint[?(@.path=='/api/karyawan/all')]").isEmpty());
     }
 
     @Test
@@ -71,7 +71,7 @@ class RoleMapControllerTest {
     void matriks_memuatSeluruhSumberPeran() throws Exception {
         mockMvc.perform(get("/api/rolemap/matriks"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[*].peran").value(hasItems(
+                .andExpect(jsonPath("$.data[*].peran").value(hasItems(
                         "SUPERADMIN", "ADMIN", "MANAGER", "MARKETING", "SALES", "HR", "KARYAWAN",
                         "CUSTOMER", "GUEST")));
     }
@@ -81,10 +81,10 @@ class RoleMapControllerTest {
     void matriks_konsistenDenganPerPeran() throws Exception {
         mockMvc.perform(get("/api/rolemap/matriks"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.peran=='GUEST')].endpoint[?(@.public==false)]").isEmpty())
-                .andExpect(jsonPath("$[?(@.peran=='CUSTOMER')].endpoint[?(@.path=='/api/customer/me')]")
+                .andExpect(jsonPath("$.data[?(@.peran=='GUEST')].endpoint[?(@.public==false)]").isEmpty())
+                .andExpect(jsonPath("$.data[?(@.peran=='CUSTOMER')].endpoint[?(@.path=='/api/customer/me')]")
                         .isNotEmpty())
-                .andExpect(jsonPath("$[?(@.peran=='CUSTOMER')].endpoint[?(@.path=='/api/karyawan/all')]")
+                .andExpect(jsonPath("$.data[?(@.peran=='CUSTOMER')].endpoint[?(@.path=='/api/karyawan/all')]")
                         .isEmpty());
     }
 
@@ -93,7 +93,7 @@ class RoleMapControllerTest {
     void matriks_tidakBentrokDenganPolaPeran() throws Exception {
         mockMvc.perform(get("/api/rolemap/matriks"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray());
+                .andExpect(jsonPath("$.data").isArray());
     }
 
     @Test
@@ -101,7 +101,7 @@ class RoleMapControllerTest {
     void perPeran_hr() throws Exception {
         mockMvc.perform(get("/api/rolemap/HR"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.endpoint[?(@.path=='/api/karyawan/all')]").isNotEmpty())
-                .andExpect(jsonPath("$.endpoint[?(@.path=='/api/karyawan' && @.method=='POST')]").isEmpty());
+                .andExpect(jsonPath("$.data.endpoint[?(@.path=='/api/karyawan/all')]").isNotEmpty())
+                .andExpect(jsonPath("$.data.endpoint[?(@.path=='/api/karyawan' && @.method=='POST')]").isEmpty());
     }
 }

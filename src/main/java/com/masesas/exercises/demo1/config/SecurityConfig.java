@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -89,7 +90,8 @@ public class SecurityConfig {
             UnauthorizedHandler unauthorizedHandler) throws Exception {
         return http
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                //.cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(Customizer.withDefaults())
                 .headers(headers -> headers
                         .contentSecurityPolicy(csp -> csp.policyDirectives(CSP_API))
                         .referrerPolicy(referrer -> referrer.policy(
@@ -130,8 +132,13 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration konfigurasi = new CorsConfiguration();
-        konfigurasi.setAllowedOrigins(allowedOrigins);
-        konfigurasi.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        //konfigurasi.setAllowedOrigins(allowedOrigins); // comment for praticing angular FE
+        konfigurasi.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "https://*.api-morpkhai.web.id"
+        ));
+        //konfigurasi.setAllowedOrigins(List.of("*"));
+        konfigurasi.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         konfigurasi.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         konfigurasi.setAllowCredentials(true);
         konfigurasi.setMaxAge(3600L);

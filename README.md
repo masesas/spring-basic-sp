@@ -149,18 +149,51 @@ Composite-key entity (`PayrollId`), a `DRAFT → APPROVED` status workflow, and 
 
 Avatar upload with a 2 MB ceiling enforced at both the multipart and application layers. Stored paths are normalized and resolved against a configured base directory, so a crafted filename cannot escape it.
 
-### Error contract
+### Response contract
 
-Every error — validation, domain, authentication, or unexpected — is returned in one shape:
+Every endpoint answers with the same envelope, `BaseApiResponse`. `meta` is present only on
+paginated endpoints and `error` only on failures, so a success payload carries neither.
 
 ```json
 {
-  "timestamp": "2026-08-17T16:59:51.732764Z",
-  "status": 401,
-  "error": "Unauthorized",
-  "message": "Username atau password salah"
+  "statusCode": 200,
+  "message": "Karyawan ditemukan",
+  "data": { "id": 7, "nama": "Budi" }
 }
 ```
+
+Paginated endpoints put the rows in `data` and the paging information in `meta`:
+
+```json
+{
+  "statusCode": 200,
+  "message": "Satu halaman karyawan",
+  "data": [ { "id": 7, "nama": "Budi" } ],
+  "meta": { "page": 0, "size": 10, "totalElements": 57, "totalPages": 6 }
+}
+```
+
+Every error — validation, domain, authentication, or unexpected — uses the same envelope with
+`data` null and an `error` object. `details` appears only on validation failures:
+
+```json
+{
+  "statusCode": 400,
+  "message": "nama: tidak boleh kosong",
+  "data": null,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "details": ["nama: tidak boleh kosong"]
+  }
+}
+```
+
+The OAuth2 token endpoints (`/api/auth/karyawan/token`, `/api/auth/customer/token`) are the one
+exception: their success body stays a bare OAuth2 payload, because the specification requires
+`access_token` at the JSON root for the Authorize button to work. Their failures still use the
+envelope.
+
+`DELETE` endpoints that succeed answer `204 No Content` with no body at all.
 
 Stack traces, exception class names, and internal messages are disabled in all environments.
 

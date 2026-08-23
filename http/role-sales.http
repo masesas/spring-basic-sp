@@ -23,9 +23,9 @@ Content-Type: application/json
         client.assert(response.status === 200, "status " + response.status);
     });
     client.test("peran SALES datang dari database", function () {
-        client.assert(response.body.roles.includes("SALES"), "roles = " + response.body.roles);
+        client.assert(response.body.data.roles.includes("SALES"), "roles = " + response.body.data.roles);
     });
-    client.global.set("token", response.body.token);
+    client.global.set("token", response.body.data.token);
 
     const sekarang = new Date();
     const periode = sekarang.getFullYear() + "-"

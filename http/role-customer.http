@@ -27,12 +27,12 @@ Content-Type: application/json
         client.assert(response.status === 200, "status " + response.status);
     });
     client.test("peran CUSTOMER melekat pada tipe principal", function () {
-        client.assert(response.body.roles.includes("CUSTOMER"), "roles = " + response.body.roles);
+        client.assert(response.body.data.roles.includes("CUSTOMER"), "roles = " + response.body.data.roles);
     });
     client.test("tipe principal CUSTOMER", function () {
-        client.assert(response.body.tipe === "CUSTOMER", "tipe " + response.body.tipe);
+        client.assert(response.body.data.tipe === "CUSTOMER", "tipe " + response.body.data.tipe);
     });
-    client.global.set("token", response.body.token);
+    client.global.set("token", response.body.data.token);
 
     const sekarang = new Date();
     const periode = sekarang.getFullYear() + "-"
@@ -88,7 +88,7 @@ Authorization: Bearer {{token}}
 > {%
     client.test("200", function () { client.assert(response.status === 200, "status " + response.status); });
     client.test("mengembalikan profil sendiri", function () {
-        client.assert(response.body.email !== undefined, "body = " + JSON.stringify(response.body));
+        client.assert(response.body.data.email !== undefined, "body = " + JSON.stringify(response.body));
     });
 %}
 

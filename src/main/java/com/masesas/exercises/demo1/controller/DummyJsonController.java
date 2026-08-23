@@ -1,5 +1,6 @@
 package com.masesas.exercises.demo1.controller;
 
+import com.masesas.exercises.demo1.dto.BaseApiResponse;
 import com.masesas.exercises.demo1.dummyjsondto.ProductResponse;
 import com.masesas.exercises.demo1.dummyjsondto.ProductSearchResponse;
 import com.masesas.exercises.demo1.service.DummyJsonService;
@@ -31,18 +32,18 @@ public class DummyJsonController {
             summary = "Cari produk di dummyjson.com",
             description = "Tanpa parameter q, seluruh produk dikembalikan.")
     @ApiResponse(responseCode = "200", description = "Hasil pencarian")
-    public ProductSearchResponse cariProduk(
+    public BaseApiResponse<ProductSearchResponse> cariProduk(
             @Parameter(description = "Kata kunci pencarian", example = "phone")
             @RequestParam(required = false) String q) {
-        return dummyJsonService.cariProduk(q);
+        return BaseApiResponse.ok("Hasil pencarian", dummyJsonService.cariProduk(q));
     }
 
     @GetMapping("/products/{id}")
     @Operation(summary = "Detail satu produk dummyjson.com")
     @ApiResponse(responseCode = "200", description = "Produk ditemukan")
-    public ProductResponse detailProduk(
+    public BaseApiResponse<ProductResponse> detailProduk(
             @Parameter(description = "ID produk di dummyjson.com", example = "1")
             @PathVariable Integer id) {
-        return dummyJsonService.ambilProduk(id);
+        return BaseApiResponse.ok("Produk ditemukan", dummyJsonService.ambilProduk(id));
     }
 }

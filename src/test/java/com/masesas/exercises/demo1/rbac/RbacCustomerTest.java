@@ -60,8 +60,8 @@ class RbacCustomerTest {
     void registerBerhasil() throws Exception {
         mockMvc.perform(register(CUSTOMER_BARU))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.email").value(CUSTOMER_BARU))
-                .andExpect(jsonPath("$.password").doesNotExist());
+                .andExpect(jsonPath("$.data.email").value(CUSTOMER_BARU))
+                .andExpect(jsonPath("$.data.password").doesNotExist());
     }
 
     @Test
@@ -85,8 +85,8 @@ class RbacCustomerTest {
 
         mockMvc.perform(loginCustomer(CUSTOMER_BARU, PASSWORD_BARU))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.tipe").value("CUSTOMER"))
-                .andExpect(jsonPath("$.roles[0]").value("CUSTOMER"));
+                .andExpect(jsonPath("$.data.tipe").value("CUSTOMER"))
+                .andExpect(jsonPath("$.data.roles[0]").value("CUSTOMER"));
     }
 
     @Test
@@ -95,7 +95,7 @@ class RbacCustomerTest {
         mockMvc.perform(get("/api/customer/me")
                         .header(HttpHeaders.AUTHORIZATION, bearerCustomer()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value(CUSTOMER_SEED));
+                .andExpect(jsonPath("$.data.email").value(CUSTOMER_SEED));
     }
 
     @Test

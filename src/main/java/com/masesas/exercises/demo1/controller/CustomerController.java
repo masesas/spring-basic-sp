@@ -1,5 +1,6 @@
 package com.masesas.exercises.demo1.controller;
 
+import com.masesas.exercises.demo1.dto.BaseApiResponse;
 import com.masesas.exercises.demo1.dto.CustomerResponse;
 import com.masesas.exercises.demo1.security.AppUser;
 import com.masesas.exercises.demo1.service.CustomerService;
@@ -30,8 +31,8 @@ public class CustomerController {
             description = "Identitas diambil dari token, bukan dari parameter, "
                     + "sehingga satu customer tidak bisa membaca profil customer lain.")
     @ApiResponse(responseCode = "200", description = "Profil ditemukan")
-    public CustomerResponse profil(@AuthenticationPrincipal AppUser user) {
-        return customerService.profil(user.getUsername());
+    public BaseApiResponse<CustomerResponse> profil(@AuthenticationPrincipal AppUser user) {
+        return BaseApiResponse.ok("Profil ditemukan", customerService.profil(user.getUsername()));
     }
 
 }

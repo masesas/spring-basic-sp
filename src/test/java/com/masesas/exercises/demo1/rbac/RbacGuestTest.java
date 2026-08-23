@@ -39,7 +39,7 @@ class RbacGuestTest {
     void guestHanyaMendapatEndpointPublik() throws Exception {
         mockMvc.perform(get("/api/rolemap/GUEST"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.endpoint[?(@.public==false)]").isEmpty());
+                .andExpect(jsonPath("$.data.endpoint[?(@.public==false)]").isEmpty());
     }
 
     @Test
