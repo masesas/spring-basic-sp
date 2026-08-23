@@ -23,6 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class UnauthorizedResponseTest {
 
     private static final String ADMIN = "admin@masesas.test";
+    private static final String TIDAK_DIKENAL = "tidak-ada@masesas.test";
 
     @Autowired
     private MockMvc mockMvc;
@@ -34,6 +35,7 @@ class UnauthorizedResponseTest {
     @AfterEach
     void bersihkanPenguncian() {
         loginAttempts.reset(ADMIN);
+        loginAttempts.reset(TIDAK_DIKENAL);
     }
 
     @Test
@@ -75,7 +77,7 @@ class UnauthorizedResponseTest {
     void usernameTidakDikenal() throws Exception {
         mockMvc.perform(post("/api/auth/karyawan/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"tidak-ada@masesas.test\",\"password\":\"apa-saja\"}"))
+                        .content("{\"username\":\"" + TIDAK_DIKENAL + "\",\"password\":\"apa-saja\"}"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Username atau password salah"));
     }
