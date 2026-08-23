@@ -25,12 +25,17 @@ public class AppUser implements UserDetails {
     private String username;
     private String password;
     private final List<String> roles;
+    private final List<String> permissions;
     private final Integer idKaryawan;
     private final String tipe;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Stream.concat(roles.stream().map(role -> "ROLE_" + role), Stream.of(ROLE_GUEST))
+        return Stream.of(
+                        roles.stream().map(role -> "ROLE_" + role),
+                        permissions.stream(),
+                        Stream.of(ROLE_GUEST))
+                .flatMap(bagian -> bagian)
                 .map(SimpleGrantedAuthority::new)
                 .toList();
     }

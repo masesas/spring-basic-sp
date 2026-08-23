@@ -1,9 +1,11 @@
 package com.masesas.exercises.demo1.security;
 
 import com.masesas.exercises.demo1.entity.Karyawan;
+import com.masesas.exercises.demo1.entity.KaryawanRole;
 import com.masesas.exercises.demo1.repository.CustomerRepository;
 import com.masesas.exercises.demo1.repository.KaryawanRepository;
 import com.masesas.exercises.demo1.repository.KaryawanRoleRepository;
+import com.masesas.exercises.demo1.repository.RolePermissionRepository;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -22,6 +24,7 @@ public class AppUserDetailsService implements UserDetailsService {
     private final KaryawanRepository karyawanRepository;
     private final KaryawanRoleRepository karyawanRoleRepository;
     private final CustomerRepository customerRepository;
+    private final RolePermissionRepository rolePermissionRepository;
 
 
     @NonNull
@@ -47,19 +50,35 @@ public class AppUserDetailsService implements UserDetailsService {
                         customer.getEmail(),
                         customer.getPassword(),
                         List.of(ROLE_CUSTOMER),
+                        List.of(),
                         null,
                         AppUser.TIPE_CUSTOMER));
     }
 
     private AppUser toAppUser(Karyawan karyawan) {
-        List<String> roles = karyawanRoleRepository.findAllByKaryawan_Id(karyawan.getId()).stream()
+        List<KaryawanRole> karyawanRoles = karyawanRoleRepository.findAllByKaryawan_Id(karyawan.getId());
+        List<String> roles = karyawanRoles.stream()
                 .map(karyawanRole -> karyawanRole.getRole().getNama())
                 .toList();
         return new AppUser(
                 karyawan.getEmail(),
                 karyawan.getPassword(),
                 roles,
+                permissionDari(karyawanRoles),
                 karyawan.getId(),
                 AppUser.TIPE_KARYAWAN);
+    }
+
+    private List<String> permissionDari(List<KaryawanRole> karyawanRoles) {
+        List<Integer> idRole = karyawanRoles.stream()
+                .map(karyawanRole -> karyawanRole.getRole().getId())
+                .toList();
+        if (idRole.isEmpty()) {
+            return List.of();
+        }
+        return rolePermissionRepository.findAllByRole_IdIn(idRole).stream()
+                .map(rolePermission -> rolePermission.getPermission().getKode())
+                .distinct()
+                .toList();
     }
 }

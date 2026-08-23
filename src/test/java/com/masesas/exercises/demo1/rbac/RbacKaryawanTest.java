@@ -138,7 +138,8 @@ class RbacKaryawanTest {
     @Test
     @DisplayName("peran dibaca dari database, bukan dari klaim di dalam token")
     void klaimPeranDiTokenTidakMenentukan() throws Exception {
-        AppUser palsu = new AppUser(MARKETING, "tidak-dipakai", List.of("ADMIN"), 3, AppUser.TIPE_KARYAWAN);
+        AppUser palsu = new AppUser(
+                MARKETING, "tidak-dipakai", List.of("ADMIN"), List.of(), 3, AppUser.TIPE_KARYAWAN);
         String token = jwtService.issue(palsu, Instant.now());
 
         mockMvc.perform(delete("/api/karyawan/" + ID_TIDAK_ADA)
