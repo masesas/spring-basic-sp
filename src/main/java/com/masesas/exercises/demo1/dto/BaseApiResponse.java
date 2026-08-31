@@ -13,7 +13,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "BaseApiResponse", description = "Bentuk baku badan response untuk seluruh endpoint")
+@Schema(description = "Bentuk baku badan response untuk seluruh endpoint")
 public class BaseApiResponse<T> {
 
     @Schema(description = "Kode status HTTP, sama dengan status pada baris response", example = "200")

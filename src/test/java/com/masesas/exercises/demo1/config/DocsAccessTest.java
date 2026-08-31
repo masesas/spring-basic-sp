@@ -9,6 +9,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -115,6 +116,38 @@ class DocsAccessTest {
         mockMvc.perform(get("/docs/openapi"))
                 .andExpect(jsonPath("$.paths..summary").exists())
                 .andExpect(jsonPath("$.paths.*.*[?(!@.summary)]").isEmpty());
+    }
+
+    @Test
+    @DisplayName("response customer, loan-application, dan loan-payment mencantumkan object return-nya")
+    void openapi_objectReturn() throws Exception {
+        mockMvc.perform(get("/docs/openapi"))
+                .andExpect(jsonPath("$.paths['/api/customer'].get.responses.200.content.*.schema.$ref")
+                        .value(hasItem("#/components/schemas/BaseApiResponseListCustomerResponse")))
+                .andExpect(jsonPath("$.paths['/api/customer/me'].get.responses.200.content.*.schema.$ref")
+                        .value(hasItem("#/components/schemas/BaseApiResponseCustomerResponse")))
+                .andExpect(jsonPath("$.paths['/api/loan-application'].get.responses.200.content.*.schema.$ref")
+                        .value(hasItem("#/components/schemas/BaseApiResponseListLoanApplicationResponse")))
+                .andExpect(jsonPath("$.paths['/api/loan-payment'].post.responses.201.content.*.schema.$ref")
+                        .value(hasItem("#/components/schemas/BaseApiResponseLoanPaymentResponse")))
+                .andExpect(jsonPath(
+                        "$.paths['/api/loan-payment/application/{idLoanApplication}/total'].get.responses.200.content.*.schema.$ref")
+                        .value(hasItem("#/components/schemas/BaseApiResponseLoanPaymentTotalResponse")));
+    }
+
+    @Test
+    @DisplayName("object return terdaftar lengkap dengan field dan contohnya")
+    void openapi_skemaObjectReturn() throws Exception {
+        mockMvc.perform(get("/docs/openapi"))
+                .andExpect(jsonPath("$.components.schemas.CustomerResponse.properties.email.description").isNotEmpty())
+                .andExpect(jsonPath("$.components.schemas.LoanApplicationResponse.properties.status.example")
+                        .value("SUBMITTED"))
+                .andExpect(jsonPath("$.components.schemas.LoanPaymentResponse.properties.jumlahBayar.description")
+                        .isNotEmpty())
+                .andExpect(jsonPath("$.components.schemas.LoanPaymentTotalResponse.properties.totalDibayar.description")
+                        .isNotEmpty())
+                .andExpect(jsonPath("$.components.schemas.BaseApiResponseListCustomerResponse.properties.data.items.$ref")
+                        .value("#/components/schemas/CustomerResponse"));
     }
 
     @Test

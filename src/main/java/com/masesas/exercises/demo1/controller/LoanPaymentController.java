@@ -3,6 +3,7 @@ package com.masesas.exercises.demo1.controller;
 import com.masesas.exercises.demo1.dto.BaseApiResponse;
 import com.masesas.exercises.demo1.dto.LoanPaymentRequest;
 import com.masesas.exercises.demo1.dto.LoanPaymentResponse;
+import com.masesas.exercises.demo1.dto.LoanPaymentTotalResponse;
 import com.masesas.exercises.demo1.service.LoanPaymentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -21,9 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/loan-payment")
@@ -61,10 +60,10 @@ public class LoanPaymentController {
     @PreAuthorize("hasAuthority('LOAN_PAYMENT_READ')")
     @Operation(summary = "Total yang sudah dibayar untuk satu pinjaman")
     @ApiResponse(responseCode = "200", description = "Total pembayaran")
-    public BaseApiResponse<Map<String, BigDecimal>> total(
+    public BaseApiResponse<LoanPaymentTotalResponse> total(
             @Parameter(description = ID_PENGAJUAN, example = "1") @PathVariable Integer idLoanApplication) {
         return BaseApiResponse.ok(
                 "Total pembayaran",
-                Map.of("totalDibayar", loanPaymentService.totalDibayar(idLoanApplication)));
+                new LoanPaymentTotalResponse(loanPaymentService.totalDibayar(idLoanApplication)));
     }
 }
