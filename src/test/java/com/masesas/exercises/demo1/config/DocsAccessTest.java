@@ -3,6 +3,7 @@ package com.masesas.exercises.demo1.config;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
@@ -23,6 +24,9 @@ class DocsAccessTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Value("${app.security.password}")
+    private String demoPassword;
 
     @Test
     @DisplayName("halaman dokumentasi terbuka tanpa token")
@@ -83,6 +87,18 @@ class DocsAccessTest {
                 .andExpect(jsonPath("$.paths['/api/karyawan/all'].get.security[*].karyawanAuth").exists())
                 .andExpect(jsonPath("$.paths['/api/customer/me'].get.security[*].customerAuth").exists())
                 .andExpect(jsonPath("$.paths['/api/auth/karyawan/login'].post.security").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("contoh password di dokumentasi bukan kredensial yang berlaku dan menyuruh diganti")
+    void openapi_contohPasswordBukanKredensial() throws Exception {
+        mockMvc.perform(get("/docs/openapi"))
+                .andExpect(jsonPath("$.components.schemas.LoginRequest.properties.password.example")
+                        .value(not(demoPassword)))
+                .andExpect(jsonPath("$.components.schemas.LoginRequest.properties.password.description")
+                        .value(containsString("ganti")))
+                .andExpect(jsonPath("$.components.schemas.CustomerRegisterRequest.properties.password.example")
+                        .value(not(demoPassword)));
     }
 
     @Test

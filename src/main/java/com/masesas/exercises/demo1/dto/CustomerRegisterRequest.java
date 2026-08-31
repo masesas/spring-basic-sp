@@ -27,6 +27,7 @@ public class CustomerRegisterRequest {
 
     @NotBlank(message = "password wajib diisi")
     @Size(min = 8, message = "password minimal 8 karakter")
-    @Schema(description = "Password, minimal 8 karakter", example = "rahasia123")
+    @Schema(description = "Password, minimal 8 karakter. Nilai contoh di bawah hanya penanda, ganti sebelum mengirim.",
+            example = "ganti-dengan-password-anda")
     private String password;
 }

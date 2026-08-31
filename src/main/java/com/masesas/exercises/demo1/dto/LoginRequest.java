@@ -17,6 +17,8 @@ public class LoginRequest {
     private String username;
 
     @NotBlank(message = "password wajib diisi")
-    @Schema(description = "Password akun", example = "rahasia123")
+    @Schema(description = "Password akun. Nilai contoh di bawah hanya penanda — ganti dengan password asli "
+            + "sebelum mengirim, karena lima kali gagal berturut-turut mengunci akun sementara.",
+            example = "ganti-dengan-password-anda")
     private String password;
 }
