@@ -226,6 +226,20 @@ Authorization: Bearer {{token}}
 
 > {% client.test("200", function () { client.assert(response.status === 200, "status " + response.status); }); %}
 
+### 3.18 GET /api/customer — 200, daftar customer berpaginasi (butuh CUSTOMER_READ)
+GET {{baseUrl}}/api/customer?page=0&size=5
+Authorization: Bearer {{token}}
+
+> {%
+    client.test("200", function () {
+        client.assert(response.status === 200, "status " + response.status);
+    });
+    client.test("berpaginasi dan tanpa password", function () {
+        client.assert(response.body.meta.size === 5, "size = " + response.body.meta.size);
+        client.assert(response.body.data[0].password === undefined, "password ikut terkirim");
+    });
+%}
+
 ### ---------------------------------------------------------------------------
 ### 4. Akses yang DITOLAK untuk ADMIN
 ### ---------------------------------------------------------------------------

@@ -233,6 +233,7 @@ Nothing in the specification is written by hand — it is generated at runtime f
 | `POST` | `/api/auth/customer/token` | Public — OAuth2 password flow |
 | `GET` | `/api/rolemap`, `/api/rolemap/matriks`, `/api/rolemap/{role}` | Public |
 | `GET` | `/api/customer/me` | `CUSTOMER` |
+| `GET` | `/api/customer` | `CUSTOMER_READ` — staff-facing, paginated |
 | `GET/POST/PUT/DELETE` | `/api/karyawan/**` | `ADMIN`, `MANAGER`, and others per method |
 | `GET/POST/PUT/DELETE` | `/api/karyawan2/**` | JdbcTemplate variant of the same surface |
 | `GET/PUT` | `/api/sp/karyawan/**` | Stored-procedure access |
@@ -311,7 +312,16 @@ psql -h <host> -U <user> -d <database> -f seeder.sql
 psql -h <host> -U <user> -d <database> -v pwd_hash="$HASH" -f rbac_masesas.sql
 psql -h <host> -U <user> -d <database> -f rbac_role_penuh_masesas.sql
 psql -h <host> -U <user> -d <database> -f rbac_superadmin_masesas.sql
+psql -h <host> -U <user> -d <database> -f permission_masesas.sql
+psql -h <host> -U <user> -d <database> -f loan_masesas.sql
+psql -h <host> -U <user> -d <database> -f permission_customer_masesas.sql
 psql -h <host> -U <user> -d <database> -f stored_procedure_postgresql.sql
+```
+
+Optional sample data for the customer list and the loan module — 10 customers, 200 loan applications, 500 instalment payments. Safe to run repeatedly:
+
+```bash
+psql -h <host> -U <user> -d <database> -v pwd_hash="$HASH" -f seed_customer_loan_masesas.sql
 ```
 
 Generate `$HASH` from your `DEMO_PASSWORD`:

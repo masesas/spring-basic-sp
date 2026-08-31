@@ -31,7 +31,9 @@ class RbacCustomerTest {
     private static final String CUSTOMER_SEED = "customer1@masesas.test";
     private static final String CUSTOMER_BARU = "customer.baru@masesas.test";
     private static final String EMAIL_KARYAWAN = "admin@masesas.test";
+    private static final String EMAIL_HR = "hr@masesas.test";
     private static final String PASSWORD_BARU = "RahasiaKuat123";
+    private static final String DAFTAR_CUSTOMER = "/api/customer";
 
     @Autowired
     private MockMvc mockMvc;
@@ -116,6 +118,34 @@ class RbacCustomerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    @DisplayName("karyawan pemegang CUSTOMER_READ membaca satu halaman daftar customer")
+    void karyawanMembacaDaftarCustomer() throws Exception {
+        mockMvc.perform(get(DAFTAR_CUSTOMER)
+                        .param("size", "5")
+                        .header(HttpHeaders.AUTHORIZATION, bearerKaryawan(EMAIL_KARYAWAN)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data[0].password").doesNotExist())
+                .andExpect(jsonPath("$.meta.size").value(5));
+    }
+
+    @Test
+    @DisplayName("HR tidak memegang CUSTOMER_READ sehingga daftar customer ditolak 403")
+    void hrDitolakDiDaftarCustomer() throws Exception {
+        mockMvc.perform(get(DAFTAR_CUSTOMER)
+                        .header(HttpHeaders.AUTHORIZATION, bearerKaryawan(EMAIL_HR)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("customer tidak bisa membaca daftar seluruh customer")
+    void customerDitolakDiDaftarCustomer() throws Exception {
+        mockMvc.perform(get(DAFTAR_CUSTOMER)
+                        .header(HttpHeaders.AUTHORIZATION, bearerCustomer()))
+                .andExpect(status().isForbidden());
+    }
+
     private RequestBuilder register(String email) {
         return post("/api/auth/customer/register")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -132,5 +162,10 @@ class RbacCustomerTest {
     private String bearerCustomer() {
         AppUser customer = userDetailsService.findCustomer(CUSTOMER_SEED).orElseThrow();
         return "Bearer " + jwtService.issue(customer, Instant.now());
+    }
+
+    private String bearerKaryawan(String email) {
+        AppUser karyawan = userDetailsService.findKaryawan(email).orElseThrow();
+        return "Bearer " + jwtService.issue(karyawan, Instant.now());
     }
 }

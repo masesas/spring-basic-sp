@@ -8,6 +8,8 @@ import com.masesas.exercises.demo1.exception.ResourceNotFoundException;
 import com.masesas.exercises.demo1.repository.CustomerRepository;
 import com.masesas.exercises.demo1.repository.KaryawanRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,6 +42,11 @@ public class CustomerService {
         customer.setUpdatedDate(sekarang);
 
         return CustomerResponse.from(customerRepository.save(customer));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<CustomerResponse> findAll(Pageable pageable) {
+        return customerRepository.findAllByDeletedDateIsNull(pageable).map(CustomerResponse::from);
     }
 
     @Transactional(readOnly = true)

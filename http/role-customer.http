@@ -147,3 +147,9 @@ Authorization: Bearer {{token}}
 
 > {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}
 
+
+### 5.8 GET /api/customer — 403 (daftar seluruh customer hanya untuk pegawai)
+GET {{baseUrl}}/api/customer
+Authorization: Bearer {{token}}
+
+> {% client.test("403", function () { client.assert(response.status === 403, "status " + response.status); }); %}

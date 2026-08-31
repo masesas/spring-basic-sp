@@ -102,6 +102,14 @@ class DocsAccessTest {
     }
 
     @Test
+    @DisplayName("daftar customer terdokumentasi sebagai endpoint karyawan, bukan endpoint customer")
+    void openapi_daftarCustomer() throws Exception {
+        mockMvc.perform(get("/docs/openapi"))
+                .andExpect(jsonPath("$.paths['/api/customer'].get.security[*].karyawanAuth").exists())
+                .andExpect(jsonPath("$.paths['/api/customer/me'].get.security[*].karyawanAuth").doesNotExist());
+    }
+
+    @Test
     @DisplayName("setiap operation punya summary — endpoint baru tidak boleh lolos tanpa dokumentasi")
     void openapi_semuaOperationTerdokumentasi() throws Exception {
         mockMvc.perform(get("/docs/openapi"))

@@ -111,6 +111,11 @@ GET {{baseUrl}}/api/sp/karyawan/statistik/total?status=AKTIF
 
 > {% client.test("401", function () { client.assert(response.status === 401, "status " + response.status); }); %}
 
+### 2.10 GET /api/customer — 401 (daftar customer untuk pegawai, tetap butuh token)
+GET {{baseUrl}}/api/customer
+
+> {% client.test("401", function () { client.assert(response.status === 401, "status " + response.status); }); %}
+
 ### ---------------------------------------------------------------------------
 ### 3. Token rusak dan token kosong — tetap 401
 ### ---------------------------------------------------------------------------
@@ -126,5 +131,3 @@ GET {{baseUrl}}/api/karyawan?page=0&size=5
 Authorization: Bearer
 
 > {% client.test("401", function () { client.assert(response.status === 401, "status " + response.status); }); %}
-
-

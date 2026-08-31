@@ -18,6 +18,22 @@ bisa dijalankan lewat UI maupun `ijhttp` di terminal.
    psql -h <host> -U <user> -d binar_finance -f ../rbac_superadmin_masesas.sql
    ```
 
+   Lalu permission modul pinjaman dan permission daftar customer:
+
+   ```bash
+   psql -h <host> -U <user> -d binar_finance -f ../permission_masesas.sql
+   psql -h <host> -U <user> -d binar_finance -f ../loan_masesas.sql
+   psql -h <host> -U <user> -d binar_finance -f ../permission_customer_masesas.sql
+   ```
+
+   Data contoh untuk daftar customer dan modul pinjaman — 10 customer, 200
+   pengajuan, 500 angsuran — bersifat opsional dan aman dijalankan berulang:
+
+   ```bash
+   psql -h <host> -U <user> -d binar_finance -v pwd_hash="$HASH" \
+        -f ../seed_customer_loan_masesas.sql
+   ```
+
 2. Salin berkas environment privat lalu isi passwordnya:
 
    ```bash
@@ -97,6 +113,7 @@ IDE bila ingin menelusuri alurnya.
 | `/api/payroll` *(selain DELETE)* | ✅ | ✅ | ✅ | — | — | ✅ | — | — | — | 401 |
 | `DELETE /api/payroll/{id}/{periode}` | ✅ | ✅ | — | — | — | ✅ | — | — | — | 401 |
 | `GET /api/customer/me` | 404 | — | — | — | — | — | — | ✅ | — | 401 |
+| `GET /api/customer` | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | — | 401 |
 | `GET /api/branch`, `/api/loan-product`, `/api/loan-document-type` | ✅ | ✅ | ✅ | ✅ | ✅ | — | — | — | — | 401 |
 | `POST/PUT/DELETE` master pinjaman *(dan `/api/permission`, `/api/role-permission`)* | ✅ | ✅ | — | — | — | — | — | — | — | 401 |
 | `GET /api/loan-plafond/**` | ✅ | ✅ | ✅ | — | ✅ | — | — | — | — | 401 |
